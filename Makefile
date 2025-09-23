@@ -19,12 +19,12 @@ SOURCES = $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
 OBJECTS_release = $(patsubst $(SRCDIR)/%,$(BUILDDIR_release)/%,$(SOURCES:.$(SRCEXT)=.o))
 
+build: clean $(TARGET)
+	@echo "Building...";
+
 run: clean $(TARGET)
 	@echo "Running...";
 	cd $(BINDIR) && ./$(RUN_TARGET) $(RUNARGS)
-
-build: clean $(TARGET)
-	@echo "Building...";
 
 release: clean $(TARGET_release)
 	@echo "Running release...";
