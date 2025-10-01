@@ -1,3 +1,27 @@
+#custom ones 
+
+#paraview
+*.pvd
+data/
+*.vti
+hpc_project
+
+#LaTeX
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.fot
+*.cb
+*.cb2
+*.lb
+*.xdv
+*.dvi
+
 # ---> C
 # Prerequisites
 *.d
