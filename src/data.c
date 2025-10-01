@@ -25,7 +25,7 @@ int write_data_vtk(struct data *data, int step, int rank) {
     printf("Error: data name too long for output VTK file\n");
     return 1;
   }
-  sprintf(out, "%s_rank%d_%d.vti", data->name, rank, step);
+  sprintf(out, RES_FOLDER "%s_rank%d_%d.vti", data->name, rank, step);
 
   FILE *fp = fopen(out, "wb");
   if (!fp) {
@@ -105,7 +105,7 @@ int write_manifest_vtk(const char *name, double dt, int nt, int sampling_rate,
                 "    <DataSet"
                 " timestep=\"%g\""
                 " part=\"%d\""
-                " file='%s_rank%d_%d.vti'/>\n",
+                " file='" RES_FOLDER "%s_rank%d_%d.vti'/>\n",
                 t, rank, name, rank, n);
       }
     }

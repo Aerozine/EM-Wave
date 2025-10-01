@@ -1,6 +1,10 @@
 #ifndef __DATA__
 #define __DATA__
 
+#ifndef RES_FOLDER
+#define RES_FOLDER "data/"
+#endif
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
