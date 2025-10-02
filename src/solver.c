@@ -30,18 +30,18 @@ int solve(struct SimulationParams *sim_params,
       fflush(stdout);
     }
 
-    // update hx and hy
+    // update hx & hy, but without cache trashing
     double chy = sim_params->dt / (sim_params->dy * phys_params->mu);
-    for (int i = 0; i < sim_params->nx; i++) {
-      for (int j = 0; j < sim_params->ny - 1; j++) {
+    for (int j = 0; j < sim_params->ny - 1; j++) {
+      for (int i = 0; i < sim_params->nx; i++) {
         double hx_ij =
             GET(&hx, i, j) - chy * (GET(&ez, i, j + 1) - GET(&ez, i, j));
         SET(&hx, i, j, hx_ij);
       }
     }
     double chx = sim_params->dt / (sim_params->dx * phys_params->mu);
-    for (int i = 0; i < sim_params->nx - 1; i++) {
-      for (int j = 0; j < sim_params->ny; j++) {
+    for (int j = 0; j < sim_params->ny; j++) {
+      for (int i = 0; i < sim_params->nx - 1; i++) {
         double hy_ij =
             GET(&hy, i, j) + chx * (GET(&ez, i + 1, j) - GET(&ez, i, j));
         SET(&hy, i, j, hy_ij);
@@ -51,8 +51,8 @@ int solve(struct SimulationParams *sim_params,
     // update ez
     double cex = sim_params->dt / (sim_params->dx * phys_params->eps),
            cey = sim_params->dt / (sim_params->dy * phys_params->eps);
-    for (int i = 1; i < sim_params->nx - 1; i++) {
-      for (int j = 1; j < sim_params->ny - 1; j++) {
+    for (int j = 1; j < sim_params->ny - 1; j++) {
+      for (int i = 1; i < sim_params->nx - 1; i++) {
         double ez_ij = GET(&ez, i, j) +
                        cex * (GET(&hy, i, j) - GET(&hy, i - 1, j)) -
                        cey * (GET(&hx, i, j) - GET(&hx, i, j - 1));
