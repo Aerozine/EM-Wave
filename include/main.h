@@ -10,4 +10,8 @@ struct PhysicalParams {
   double eps, mu;
 };
 
+struct PerformanceData {
+  double time, MUps_per_sec;
+};
+
 #endif

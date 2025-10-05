@@ -44,10 +44,24 @@ void set_params(struct SimulationParams *params, int problem_id) {
     params->nt = 500;
     params->sampling_rate = 0; // don't save results
     break;
+  case 3: // larger size problem, usable for initial scaling tests
+    params->dx = params->dy = (3.e8 / 2.4e9) / 40.; // wavelength / 40
+    params->nx = params->ny = 4000;
+    params->dt = 0.1 / (3.e8 * sqrt(1. / (params->dx * params->dx) +
+                                    1. / (params->dy * params->dy))); // cfl / 2
+    params->nt = 2500;
+    params->sampling_rate = 1; // don't save results
+    break;
   default:
     printf("Error: unknown problem id %d\n", problem_id);
     exit(EXIT_FAILURE);
   }
+}
+
+void print_perf_data(struct PerformanceData *perf_data) {
+  fprintf(stdout, "Performance : \n");
+  fprintf(stdout, "\t- Time : %g\n", perf_data->time);
+  fprintf(stdout, "\t- MUpdates/s : %g\n", perf_data->MUps_per_sec);
 }
 
 int main(int argc, char **argv) {
@@ -57,12 +71,14 @@ int main(int argc, char **argv) {
   }
 
   struct SimulationParams sim_params;
+  struct PerformanceData perf_data;
+  struct PhysicalParams phys_params;
 
   init_params(&sim_params);
-
-  struct PhysicalParams phys_params;
   phys_params.eps = 8.854187817e-12;
   phys_params.mu = 1.2566370614359173e-06;
+  perf_data.time = -1;
+  perf_data.MUps_per_sec = -1;
 
   int problem_id = atoi(argv[1]);
   set_params(&sim_params, problem_id);
@@ -75,8 +91,10 @@ int main(int argc, char **argv) {
   printf(" - time %gs (sim_params.dt=%g, sim_params.nt=%d)\n",
          sim_params.dt * sim_params.nt, sim_params.dt, sim_params.nt);
 
-  if (solve(&sim_params, &phys_params, problem_id))
+  if (solve(&sim_params, &phys_params, problem_id, &perf_data))
     return EXIT_FAILURE;
+
+  print_perf_data(&perf_data);
 
   return EXIT_SUCCESS;
 }

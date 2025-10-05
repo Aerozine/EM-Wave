@@ -6,7 +6,8 @@
 #include <stdlib.h>
 
 int solve(struct SimulationParams *sim_params,
-          struct PhysicalParams *phys_params, int problem_id) {
+          struct PhysicalParams *phys_params, int problem_id,
+          struct PerformanceData *perf_data) {
 
   struct data ez, hx, hy;
   if (init_data(&ez, "ez", sim_params->nx, sim_params->ny, sim_params->dx,
@@ -69,6 +70,10 @@ int solve(struct SimulationParams *sim_params,
       SET(&ez, sim_params->nx / 2, sim_params->ny / 2,
           sin(2. * M_PI * 2.4e9 * t));
       break;
+    case 3:
+      SET(&ez, sim_params->nx / 2, sim_params->ny / 2,
+          sin(2. * M_PI * 2.4e9 * t));
+      break;
     default:
       printf("Error: unknown source\n");
       break;
@@ -89,13 +94,17 @@ int solve(struct SimulationParams *sim_params,
   // write_manifest_vtk("hy", sim_params->dt, sim_params->nt, sampling_rate, 1);
 
   double time = GET_TIME() - start;
-  printf("\nDone: %g seconds (%g MUpdates/s)\n", time,
-         1.e-6 * (double)sim_params->nx * (double)sim_params->ny *
-             (double)sim_params->nt / time);
+  double MUps_per_sec = 1.e-6 * (double)sim_params->nx *
+                        (double)sim_params->ny * (double)sim_params->nt / time;
+
+  perf_data->time = time;
+  perf_data->MUps_per_sec = MUps_per_sec;
 
   free_data(&ez);
   free_data(&hx);
   free_data(&hy);
+
+  printf("\n");
 
   return EXIT_SUCCESS;
 }
