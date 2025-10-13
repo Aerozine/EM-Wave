@@ -27,16 +27,24 @@ Before the loops start, a coefficient $(Delta t) / (mu Delta q)$ is computed, wh
 
 Let us now consider the two #raw("for") loops. The number of iterations of the loop linked to $H_q$ is the number of grid points along $q$, hence $n_q$. If $r$ is the other direction of space (excluding $z$), then the remaining loop does $n_r - 1$ iterations. The $-1$ comes from the fact that forward derivation is used, and that the $H$ and $E$ grids are staggered. The total number of iterations is then $n_q (n_r - 1)$. If $n_r$ is big - which is a reasonable approximation, as a supercomputer is used here - then it can be considered that $n_q n_r$ iterations are done.
 
-Finally, let us consider the operation done at each iteration. Three different values are needed : $H_q (i, j)$, $E_z (i + 1, j)$, and $E_z (i, j)$. We can assume that the two $E_z$ values are obtained with the same cache line, making that only one memory access. Thus, if those values are not in cache, two memory accesses must be performed.
+Finally, let us consider the operation done at each iteration. Three different values are needed : $H_q (i, j)$, $E_z (i + 1, j)$, and $E_z (i, j)$. Thus, three variables must be accessed at each iteration. One can argue that $E_z (i + 1, j)$ is the $E_z (i, j)$ of the next iteration. It can then be kept in cache, reducing the number of accesses to the main memory. It can be concluded that two memory accesses are necessary at each iteration.
 
 The algorithm performs one subtraction, one multiplication, and finally one addition. It then sets the new value. This does not cause any more memory access, as the variable set is the $H_q (i, j)$ value needed for the calculation. Three flops are then needed at each iteration.
 
-To determine whether the memory accesses or the flops are the most demanding operation, one must take into account the memory bandwidth and the processing power. On a machine with $2.8$ TFLOPS/s and $200$ GB/S of memory bandwidth, one can compare the ratio between the two with the 3/2 ratio that theoretically saturates both. Here, the ratio obtained is 14. It can be concluded that a big performance limit comes from the low memory bandwidth.
+Finally, it can be seen that, for each iteration, $3$ floating point operations are executed, and two memory accesses are performed.
 
-This calculation isn't right, as less memory accesses are needed, given the cache. On NIC5, the L1 data cache is $32$ KB, the L2 is $512$ KB, and the L3 is 32MB per 8 cores. The L3 cache is thus 128MB for 32 cores. This can theoretically store $128 * 1024^2 / 8 = 16 med 777 med 216$ doubles. If this is equally allocated between the two data accesses, it reduces the need for. 
+= Application to a real system
 
-= Questions
+Let us consider a computer which as the following specifications : $2.8$ TFLOPS/s of computing power, and a memory bandwidth of $200$ GB/s. Converting into flops, we see that it can execute $2.8 dot.op 10^(12)$ floating point operations each second. The number of bytes accessible each second is equal to $2 dot.op 10^(11)$.
 
-- Does the 200 GB/S of memory bandwidth take into account the cache ? Does it need to, as it is the limiting factor ? Or do we not take into account optimizations (requesting data a bit before needing it) ?
-- How to take into account the cache line ?
-- Can I just compute the ratio between the flops and memory accesses and then generalize it ?
+Let us now consider that the variables are stored as doubles. This means that they each take up $8$ bytes. We then conclude that $(2 dot.op 10^(11)) / 8 = 25 dot.op 10^9$ variables can be accessed from memory each second. If we compute the ratio between the flops/s and variables accessed per second, we get $(2.8 dot.op 10^(12)) / (25 dot.op 10^9) = 112$. However, it was determined at the previous section that the ratio allowing for the saturation of both computing power and memory bandwidth was $3/2$. We then conclude that the main limitation here is the memory bandwidth.
+
+If we now assume that the variables are stored as floats and not doubles, we can calculate that $50 dot 10^9$ variables can be accessed each second. The ratio then becomes equal to $56$. We see that there is a still a great limitation coming from the memory bandwidth, but an improvement in performance of two can be achieved.
+
+= Implications of the cache
+
+In the sections above, the cache was only mentioned as being able to store a value of $E_z$ between two iterations. In fact, as the memory is accessed in chunks of size equal to the cache line, the cache will store quite a bit more than that. However, this will not influence the calculations above.
+
+Let us first consider the case where only the $E_z$ value is stored in cache. Such a behaviour could represent cache trashing. This will heavily impact the performance, not because of the memory bandwidth, but because of the latency inherent to memory accesses. The CPU will spend its time waiting for data to arrive, do a ridiculously low number of operations on it, then wait again.
+
+This is not representative of the real world. Two things, when taken together, will heavily improve performance : the cache, and memory prefetching. The CPU will only operate on data found in cache, and hardware (and software, as we compile with #raw("gcc -O3")) prefetchers will make sure that the needed data is available on time. This will of course only mitigate the memory access latency. The number of variables available from memory each second is constant and determined by the memory bandwidth. The CPU will still end up waiting for data to arrive, but the cause won't be latency.
