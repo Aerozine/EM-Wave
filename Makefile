@@ -1,59 +1,35 @@
-APP = hpc_project
-CC = gcc
-SRCDIR = src
-BINDIR = bin
-BINDIR_release = bin_release
-BUILDDIR = build
-BUILDDIR_release = build_release
-TARGET = $(BINDIR)/$(APP)
-RUN_TARGET = $(APP)
-TARGET_release = $(BINDIR_release)/$(APP)
-RUNARGS := 1
-CFLAGS_HARD = -Wall -Wextra -Werror -Wpedantic
-CFLAGS = -Wall -Wextra
-LIB = -lm
-INC = -I include
+.PHONY = reference stability cache mpi openmp gpu clean_all clean run
+TARGET = hpc_project
+RES_FOLDER?="data/"
+BUILD ?=reference 
+RES_IDX=ez.pvd
+# checking if build has the right values
+ifeq ($(filter $(BUILD),reference stability cache mpi openmp gpu),)
+    $(error Invalid build argument BUILD="$(BUILD)". possible values are stability cache mpi openmp gpu )
+endif
 
-SRCEXT = c
-SOURCES = $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
-OBJECTS = $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.o))
-OBJECTS_release = $(patsubst $(SRCDIR)/%,$(BUILDDIR_release)/%,$(SOURCES:.$(SRCEXT)=.o))
+run:$(TARGET)
+	./$(TARGET) 1
 
-build: clean $(TARGET)
-	@echo "Building...";
+$(TARGET): 
+	$(MAKE) -C $(BUILD) RES_FOLDER=$(RES_FOLDER) -j$(shell nproc) build
 
-run: clean $(TARGET)
-	@echo "Running...";
-	cd $(BINDIR) && ./$(RUN_TARGET) $(RUNARGS)
+$(RES_IDX):$(TARGET)
 
-release: clean $(TARGET_release)
-	@echo "Running release...";
-	./$(TARGET_release) $(RUNARGS)
-
-build_release: clean $(TARGET_release)
-	@echo "Running release...";
-
-$(TARGET): $(OBJECTS)
-	@echo "Linking...";
-	@mkdir -p $(dir $@)
-	@echo "$(CC) $^ -o $(TARGET) $(LIB)"; $(CC) $^ -o $(TARGET) $(LIB)
-
-$(TARGET_release): $(OBJECTS_release)
-	@echo "Linking...";
-	@mkdir -p $(dir $@)
-	@echo "$(CC) $^ -o $(TARGET) $(LIB)"; $(CC) $^ -o $(TARGET_release) $(LIB)
-
-$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
-	@mkdir -p $(dir $@)
-	@echo "$(CC) $(CFLAGS) $(INC) -c -o $@ $<"; $(CC) $(CFLAGS) $(INC) -c -o $@ $<
-
-$(BUILDDIR_release)/%.o: $(SRCDIR)/%.$(SRCEXT)
-	@mkdir -p $(dir $@)
-	@echo "$(CC) $(CFLAGS_HARD) $(INC) -c -o $@ $<"; $(CC) $(CFLAGS_HARD) $(INC) -c -o $@ $<
+paraview: $(RES_IDX)
+	paraview --data $(RES_IDX) --mpi
 
 clean:
-	@echo "Cleaning...";
-	$(shell rm -rf $(BUILDDIR))
-	$(shell rm -rf $(BINDIR))
-	$(shell rm -rf $(BUILDDIR_release))
-	$(shell rm -rf $(BINDIR_release))
+	make -j$(nproc) -C $(BUILD) clean
+	$(RM) $(RES_IDX) $(TARGET)
+	$(RM) $(RES_FOLDER)/*
+
+
+clean_all:
+	$(RM) $(RES_IDX) $(TARGET)  $(RES_FOLDER)/*
+	make -j$(nproc) -C reference clean
+	make -j$(nproc) -C stability clean
+	make -j$(nproc) -C cache clean
+	make -j$(nproc) -C mpi clean
+	make -j$(nproc) -C openmp clean
+	make -j$(nproc) -C gpu clean

@@ -13,8 +13,10 @@ At some point, a simulation will be run on a GPU.
 The code can be compiled with the following commands :
 
 ```bash
-make
+BUILD=reference make -j$(nprocs)
 ```
+where BUILD is one of folder target , actually there is reference and stability
+To build stability an environment python with numpy and matplotlib is required
 
 and it can be run with :
 
