@@ -1,12 +1,18 @@
 #include "data.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 int init_data(struct data *data, const char *name, int nx, int ny, double dx,
-              double dy, double val) {
+              double dy, double origin_x, double origin_y, double val) {
   data->name = name;
   data->nx = nx;
   data->ny = ny;
   data->dx = dx;
   data->dy = dy;
+  data->origin_x = origin_x;
+  data->origin_y = origin_y;
   data->values = (double *)malloc(nx * ny * sizeof(double));
   if (!data->values) {
     printf("Error: Could not allocate data\n");
@@ -62,8 +68,8 @@ int write_data_vtk(struct data *data, int step, int rank) {
           "    </Piece>\n"
           "  </ImageData>\n"
           "  <AppendedData encoding=\"raw\">\n_",
-          data->nx - 1, data->ny - 1, 0, data->dx, data->dy, 0., 0., 0., 0.,
-          data->nx - 1, data->ny - 1, 0, data->name);
+          data->nx - 1, data->ny - 1, 0, data->dx, data->dy, 0., data->origin_x,
+          data->origin_y, 0., data->nx - 1, data->ny - 1, 0, data->name);
 
   fwrite(&num_bytes, sizeof(uint64_t), 1, fp);
   fwrite(data->values, sizeof(double), num_points, fp);

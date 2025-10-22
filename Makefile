@@ -11,7 +11,7 @@ TARGET_release = $(BINDIR_release)/$(APP)
 RUNARGS := 1
 CFLAGS_HARD += -Wall -Wextra -Werror -Wpedantic
 CFLAGS += -Wall -Wextra -O3 -D RES_FOLDER='"data/"'
-LIB = -lm
+LIB = -lm -lmpi
 INC = -I include
 
 SRCEXT = c
@@ -31,6 +31,14 @@ run: clean $(TARGET)
 		./$(RUN_TARGET) 1 ; \
 	else \
 		./$(RUN_TARGET) $(PROBLEM_CASE) ; \
+	fi
+
+mpi: clean $(TARGET)
+	@mkdir -p $(RES_FOLDER)
+	if [ -z "$(PROBLEM_CASE)" ]; then \
+		mpirun -n 3 ./$(RUN_TARGET) 1 --use-mpi; \
+	else \
+		mpirun -n 3 ./$(RUN_TARGET) $(PROBLEM_CASE) --use-mpi; \
 	fi
 
 $(RES_idx):run
