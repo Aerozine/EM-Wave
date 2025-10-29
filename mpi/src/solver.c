@@ -171,7 +171,7 @@ void send_data_new(int nb_neighbours, double **sent_data, int *sizes,
     // hx
     sent_data[X_END][i] = GET(hx, sizes[Y_START] - 1, i);
     // hy
-    sent_data[X_END][sizes[X_END] + i] = GET(hy, sizes[Y_START] - 1, i);
+    sent_data[X_END][sizes[X_END] + i] = GET(hy, sizes[Y_START] - 2, i);
     // ez
     sent_data[X_END][sizes[X_END] * 2 + i] = GET(ez, sizes[Y_START] - 1, i);
   }
@@ -189,7 +189,7 @@ void send_data_new(int nb_neighbours, double **sent_data, int *sizes,
   // YEND
   for (int i = 0; i < sizes[Y_END] - 1; i++) {
     // hx
-    sent_data[Y_END][i] = GET(hx, i, sizes[X_START] - 1);
+    sent_data[Y_END][i] = GET(hx, i, sizes[X_START] - 2);
     // hy
     sent_data[Y_END][sizes[Y_END] + i] = GET(hy, i, sizes[X_START] - 1);
     // ez
@@ -289,7 +289,7 @@ int receive_data_new(int nb_neighbours, double **received_data, int *sizes,
       case X_END:
         for (int j = 0; j < sizes[i] - 1; j++) {
           SET(hx, sizes[Y_START] - 1, j, received_data[i][j]);
-          SET(hy, sizes[Y_START] - 1, j, received_data[i][sizes[i] + j]);
+          SET(hy, sizes[Y_START] - 2, j, received_data[i][sizes[i] + j]);
           SET(ez, sizes[Y_START] - 1, j, received_data[i][2 * sizes[i] + j]);
         }
         break;
@@ -302,7 +302,7 @@ int receive_data_new(int nb_neighbours, double **received_data, int *sizes,
         break;
       case Y_END:
         for (int j = 0; j < sizes[i] - 1; j++) {
-          SET(hx, j, sizes[X_START] - 1, received_data[i][j]);
+          SET(hx, j, sizes[X_START] - 2, received_data[i][j]);
           SET(hy, j, sizes[X_START] - 1, received_data[i][sizes[i] + j]);
           SET(ez, j, sizes[X_START] - 1, received_data[i][2 * sizes[i] + j]);
         }
@@ -451,8 +451,8 @@ int solve(struct SimulationParams *sim_params,
     }
 
     // impose source
-    int source_x = sim_params->size_of_space[0] / 2;
-    int source_y = sim_params->size_of_space[1] / 2;
+    int source_x = sim_params->size_of_space[0] / 2 - 2;
+    int source_y = sim_params->size_of_space[1] / 2 - 2;
     double n = t * sim_params->steps[sim_params->ndim];
     if ((proc_area->start[0] <= source_x && proc_area->end[0] > source_x) &&
         (proc_area->start[1] <= source_y && proc_area->end[1] > source_y)) {
