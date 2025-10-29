@@ -22,8 +22,12 @@ void free_area(struct area *object) {
   free(object);
 }
 
+// Function that sets all parameters relating to the computation area of the
+// current process. It returns the area, and sets the neighbours in mpi_params.
 struct area *get_area(struct SimulationParams *sim_params,
                       struct MpiParams *mpi_params) {
+
+  // Allocation of memory
   struct area *current_area = malloc(sizeof(struct area));
   if (!current_area)
     return NULL;
@@ -43,6 +47,7 @@ struct area *get_area(struct SimulationParams *sim_params,
     return NULL;
   }
 
+  // Setting the parameters
   if (!mpi_params->use_mpi) {
     for (int i = 0; i < sim_params->ndim; i++) {
       current_area->start[i] = 0;
@@ -50,6 +55,7 @@ struct area *get_area(struct SimulationParams *sim_params,
       current_area->origin[i] = 0.;
     }
   } else {
+    // Second allocation of memory
     mpi_params->procs_per_dim = malloc(sizeof(int) * sim_params->ndim);
     mpi_params->periods = malloc(sizeof(int) * sim_params->ndim);
     mpi_params->coords = malloc(sizeof(int) * sim_params->ndim);
@@ -61,6 +67,7 @@ struct area *get_area(struct SimulationParams *sim_params,
       free(mpi_params->periods);
       free(mpi_params->coords);
       free(mpi_params->neighbours);
+      free_area(current_area);
       return NULL;
     }
 
@@ -70,6 +77,7 @@ struct area *get_area(struct SimulationParams *sim_params,
       mpi_params->coords[i] = 0;
     }
 
+    // Getting the repartition from MPI
     MPI_Dims_create(mpi_params->num_ranks, sim_params->ndim,
                     mpi_params->procs_per_dim);
     MPI_Cart_create(MPI_COMM_WORLD, sim_params->ndim, mpi_params->procs_per_dim,
@@ -97,6 +105,7 @@ struct area *get_area(struct SimulationParams *sim_params,
       int negative, positive;
       MPI_Cart_shift(mpi_params->cart_comm, i, 1, &negative, &positive);
 
+      // Note that if there's no neighbour, the rank is set to -1
       if (negative != MPI_PROC_NULL) {
         mpi_params->neighbours[2 * i].rank = negative;
         mpi_params->neighbours[2 * i].pos = 2 * i;
@@ -116,7 +125,7 @@ struct area *get_area(struct SimulationParams *sim_params,
 }
 
 // Yes, this function is too big.
-// But it only does one things, which is apply the finite difference scheme.
+// But it only does one thing, which is apply the finite difference scheme.
 int solve(struct SimulationParams *sim_params,
           struct PhysicalParams *phys_params, struct PerformanceData *perf_data,
           struct MpiParams *mpi_params) {
