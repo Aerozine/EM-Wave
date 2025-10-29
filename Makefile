@@ -8,6 +8,8 @@ ifeq ($(filter $(BUILD),reference stability cache mpi openmp gpu),)
     $(error Invalid build argument BUILD="$(BUILD)". possible values are stability cache mpi openmp gpu )
 endif
 
+build:$(TARGET)
+
 run:$(TARGET)
 	./$(TARGET) 1
 
@@ -29,7 +31,7 @@ clean_all:
 	$(RM) $(RES_IDX) $(TARGET)  $(RES_FOLDER)/*
 	make -j$(nproc) -C reference clean
 	make -j$(nproc) -C stability clean
-	make -j$(nproc) -C cache clean
 	make -j$(nproc) -C mpi clean
+	make -j$(nproc) -C cache clean
 	make -j$(nproc) -C openmp clean
 	make -j$(nproc) -C gpu clean
