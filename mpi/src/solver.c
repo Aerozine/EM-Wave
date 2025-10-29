@@ -129,13 +129,15 @@ struct area *get_area(struct SimulationParams *sim_params,
 
 void free_all_solve_pointers(int nb_neighbours, struct area *proc_area,
                              struct data *hx, struct data *hy, struct data *ez,
-                             MPI_Request *requests, double **sent_data,
+                             MPI_Request *send_requests,
+                             MPI_Request *recv_requests, double **sent_data,
                              double **received_data, int *sizes) {
   free_area(proc_area);
   free_data(hx);
   free_data(hy);
   free_data(ez);
-  free(requests);
+  free(send_requests);
+  free(recv_requests);
 
   for (int i = 0; i < nb_neighbours; i++) {
     free(sent_data[i]);
@@ -149,6 +151,9 @@ void free_all_solve_pointers(int nb_neighbours, struct area *proc_area,
 void send_data_new(int nb_neighbours, double **sent_data, int *sizes,
                    struct data *hx, struct data *hy, struct data *ez,
                    struct MpiParams *mpi_params, MPI_Request *requests) {
+  for (int i = 0; i < nb_neighbours; i++)
+    requests[i] = MPI_REQUEST_NULL;
+
   // First, we set the sent_data
 
   // XSTART
@@ -225,7 +230,10 @@ void send_data_new(int nb_neighbours, double **sent_data, int *sizes,
 
 int receive_data_new(int nb_neighbours, double **received_data, int *sizes,
                      struct data *hx, struct data *hy, struct data *ez,
-                     struct MpiParams *mpi_params) {
+                     struct MpiParams *mpi_params, MPI_Request *requests) {
+  for (int i = 0; i < nb_neighbours; i++)
+    requests[i] = MPI_REQUEST_NULL;
+
   bool *received_neighbour = malloc(sizeof(bool) * nb_neighbours);
   if (!received_neighbour) {
     return EXIT_FAILURE;
@@ -239,27 +247,27 @@ int receive_data_new(int nb_neighbours, double **received_data, int *sizes,
     if (current_neighbour.rank != -1) {
       switch (current_neighbour.pos) {
       case X_START:
-        MPI_Recv(received_data[X_START], sizes[X_START] * 3, MPI_DOUBLE,
-                 current_neighbour.rank, X_END, mpi_params->cart_comm,
-                 MPI_STATUS_IGNORE);
+        MPI_Irecv(received_data[X_START], sizes[X_START] * 3, MPI_DOUBLE,
+                  current_neighbour.rank, X_END, mpi_params->cart_comm,
+                  &(requests[X_START]));
         received_neighbour[X_START] = true;
         break;
       case X_END:
-        MPI_Recv(received_data[X_END], sizes[X_END] * 3, MPI_DOUBLE,
-                 current_neighbour.rank, X_START, mpi_params->cart_comm,
-                 MPI_STATUS_IGNORE);
+        MPI_Irecv(received_data[X_END], sizes[X_END] * 3, MPI_DOUBLE,
+                  current_neighbour.rank, X_START, mpi_params->cart_comm,
+                  &(requests[X_END]));
         received_neighbour[X_END] = true;
         break;
       case Y_START:
-        MPI_Recv(received_data[Y_START], sizes[Y_START] * 3, MPI_DOUBLE,
-                 current_neighbour.rank, Y_END, mpi_params->cart_comm,
-                 MPI_STATUS_IGNORE);
+        MPI_Irecv(received_data[Y_START], sizes[Y_START] * 3, MPI_DOUBLE,
+                  current_neighbour.rank, Y_END, mpi_params->cart_comm,
+                  &(requests[Y_START]));
         received_neighbour[Y_START] = true;
         break;
       case Y_END:
-        MPI_Recv(received_data[Y_END], sizes[Y_END] * 3, MPI_DOUBLE,
-                 current_neighbour.rank, Y_START, mpi_params->cart_comm,
-                 MPI_STATUS_IGNORE);
+        MPI_Irecv(received_data[Y_END], sizes[Y_END] * 3, MPI_DOUBLE,
+                  current_neighbour.rank, Y_START, mpi_params->cart_comm,
+                  &(requests[Y_END]));
         received_neighbour[Y_END] = true;
         break;
       default:
@@ -319,7 +327,7 @@ int solve(struct SimulationParams *sim_params,
   int ny = proc_area->end[1] - proc_area->start[1];
 
   struct data ez, hx, hy;
-  double val = (double)mpi_params->rank;
+  double val = 0.;
   if (init_data(&ez, "ez", nx, ny, sim_params->steps[0], sim_params->steps[1],
                 proc_area->start[0] * sim_params->steps[0],
                 proc_area->start[1] * sim_params->steps[1], val) ||
@@ -341,19 +349,23 @@ int solve(struct SimulationParams *sim_params,
 
   // Setting up MPI requests variables
   // Note the initialization to NULL to be able to free even if not malloc yet
-  MPI_Request *requests = NULL;
+  MPI_Request *send_requests = NULL;
+  MPI_Request *recv_requests = NULL;
   double **sent_data = NULL;
   double **received_data = NULL;
   int *sizes = NULL;
-  requests = malloc(sizeof(MPI_Request) * nb_neighbours);
+  send_requests = malloc(sizeof(MPI_Request) * nb_neighbours);
+  recv_requests = malloc(sizeof(MPI_Request) * nb_neighbours);
   sent_data = malloc(sizeof(double *) * nb_neighbours);
   received_data = malloc(sizeof(double *) * nb_neighbours);
   sizes = malloc(sizeof(int) * nb_neighbours);
 
-  if (!requests || !sent_data || !received_data || !sizes) {
+  if (!send_requests || !recv_requests || !sent_data || !received_data ||
+      !sizes) {
     printf("Error: allocation problem in initial MPI structs init\n");
-    free_all_solve_pointers(nb_neighbours, proc_area, &hx, &hy, &ez, requests,
-                            sent_data, received_data, sizes);
+    free_all_solve_pointers(nb_neighbours, proc_area, &hx, &hy, &ez,
+                            send_requests, recv_requests, sent_data,
+                            received_data, sizes);
     return EXIT_FAILURE;
   }
 
@@ -370,8 +382,9 @@ int solve(struct SimulationParams *sim_params,
 
     if (!sent_data[i] || !received_data[i]) {
       printf("Error: allocation problem in second MPI structs init\n");
-      free_all_solve_pointers(nb_neighbours, proc_area, &hx, &hy, &ez, requests,
-                              sent_data, received_data, sizes);
+      free_all_solve_pointers(nb_neighbours, proc_area, &hx, &hy, &ez,
+                              send_requests, recv_requests, sent_data,
+                              received_data, sizes);
       return EXIT_FAILURE;
     }
   }
@@ -381,11 +394,14 @@ int solve(struct SimulationParams *sim_params,
   for (int t = 0; t < sim_params->size_of_space[sim_params->ndim]; t++) {
     // Sending the data
     send_data_new(nb_neighbours, sent_data, sizes, &hx, &hy, &ez, mpi_params,
-                  requests);
+                  send_requests);
+    receive_data_new(nb_neighbours, received_data, sizes, &hx, &hy, &ez,
+                     mpi_params, recv_requests);
 
     // Receiving the data
-    receive_data_new(nb_neighbours, received_data, sizes, &hx, &hy, &ez,
-                     mpi_params);
+
+    MPI_Waitall(nb_neighbours, send_requests, MPI_STATUSES_IGNORE);
+    MPI_Waitall(nb_neighbours, recv_requests, MPI_STATUSES_IGNORE);
 
     if (t && (t % (sim_params->size_of_space[sim_params->ndim] / 10)) == 0) {
       double time_sofar = GET_TIME() - start;
@@ -477,8 +493,9 @@ int solve(struct SimulationParams *sim_params,
   perf_data->time = time;
   perf_data->MUps_per_sec = MUps_per_sec;
 
-  free_all_solve_pointers(nb_neighbours, proc_area, &hx, &hy, &ez, requests,
-                          sent_data, received_data, sizes);
+  free_all_solve_pointers(nb_neighbours, proc_area, &hx, &hy, &ez,
+                          send_requests, recv_requests, sent_data,
+                          received_data, sizes);
 
   printf("\n");
 
