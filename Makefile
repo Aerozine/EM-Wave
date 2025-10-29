@@ -13,7 +13,10 @@ build:$(TARGET)
 run:$(TARGET)
 	./$(TARGET) 1
 
-$(TARGET): 
+run_mpi:$(TARGET)
+	mpirun -n 3 $(TARGET) 1 --use-mpi
+
+$(TARGET): clean_all
 	$(MAKE) -C $(BUILD) RES_FOLDER=$(RES_FOLDER) -j$(shell nproc) build
 
 $(RES_IDX):$(TARGET)
@@ -32,6 +35,6 @@ clean_all:
 	make -j$(nproc) -C reference clean
 	make -j$(nproc) -C stability clean
 	make -j$(nproc) -C mpi clean
-	make -j$(nproc) -C cache clean
-	make -j$(nproc) -C openmp clean
-	make -j$(nproc) -C gpu clean
+# 	make -j$(nproc) -C cache clean
+# 	make -j$(nproc) -C openmp clean
+# 	make -j$(nproc) -C gpu clean

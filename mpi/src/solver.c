@@ -181,7 +181,7 @@ int solve(struct SimulationParams *sim_params,
   }
 
   for (int i = 0; i < 2 * sim_params->ndim; i++) {
-    counts[i] = computation_area->end[i / 2] - computation_area->start[i / 2];
+    counts[i] = (i < 2) ? ny : nx;
     received_data[i] = malloc(sizeof(double) * counts[i]);
     if (!received_data[i]) {
       for (int j = 0; j < i; j++) {
@@ -196,6 +196,8 @@ int solve(struct SimulationParams *sim_params,
   }
 
   // Time loop
+  DEBUG_PRINT("starting time loop in process %d of %d\n", mpi_params->rank + 1,
+              mpi_params->num_ranks);
   for (int n = 0; n < sim_params->size_of_space[sim_params->ndim]; n++) {
 
     // Sending part
@@ -207,6 +209,7 @@ int solve(struct SimulationParams *sim_params,
     }
 
     // Then, we wend the data to the neighbours
+    DEBUG_PRINT("Starting to send data on process %d\n", mpi_params->rank + 1);
     for (int i = 0; i < 2 * sim_params->ndim; i++) {
       struct neighbour current_neighbour = mpi_params->neighbours[i];
       if (current_neighbour.rank != -1) {
@@ -220,7 +223,7 @@ int solve(struct SimulationParams *sim_params,
         case Y_START:
           DEBUG_PRINT("Process %d sending to %d, tag %d\n",
                       mpi_params->rank + 1, current_neighbour.rank + 1, 2);
-          MPI_Isend(&(ez.values), nx, MPI_DOUBLE, current_neighbour.rank, 2,
+          MPI_Isend(ez.values, nx, MPI_DOUBLE, current_neighbour.rank, 2,
                     mpi_params->cart_comm, &requests[1]);
           break;
         case X_END:
@@ -232,7 +235,7 @@ int solve(struct SimulationParams *sim_params,
         case Y_END:
           DEBUG_PRINT("Process %d sending to %d, tag %d\n",
                       mpi_params->rank + 1, current_neighbour.rank + 1, 3);
-          MPI_Isend(&(hx.values), nx, MPI_DOUBLE, current_neighbour.rank, 3,
+          MPI_Isend(hx.values, nx, MPI_DOUBLE, current_neighbour.rank, 3,
                     mpi_params->cart_comm, &requests[3]);
           break;
         default:
