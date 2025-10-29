@@ -5,6 +5,7 @@
 
 #include <math.h>
 #include <mpi.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -104,6 +105,8 @@ struct area *get_area(struct SimulationParams *sim_params,
       // Getting neighbours
       int negative, positive;
       MPI_Cart_shift(mpi_params->cart_comm, i, 1, &negative, &positive);
+      printf("Proc %d, dim %d, neg %d, pos %d\n", mpi_params->rank + 1, i,
+             negative, positive);
 
       // Note that if there's no neighbour, the rank is set to -1
       if (negative != MPI_PROC_NULL) {
@@ -124,138 +127,275 @@ struct area *get_area(struct SimulationParams *sim_params,
   return current_area;
 }
 
-// Yes, this function is too big.
-// But it only does one thing, which is apply the finite difference scheme.
+void free_all_solve_pointers(int nb_neighbours, struct area *proc_area,
+                             struct data *hx, struct data *hy, struct data *ez,
+                             MPI_Request *requests, double **sent_data,
+                             double **received_data, int *sizes) {
+  free_area(proc_area);
+  free_data(hx);
+  free_data(hy);
+  free_data(ez);
+  free(requests);
+
+  for (int i = 0; i < nb_neighbours; i++) {
+    free(sent_data[i]);
+    free(received_data[i]);
+  }
+  free(sent_data);
+  free(received_data);
+  free(sizes);
+}
+
+void send_data_new(int nb_neighbours, double **sent_data, int *sizes,
+                   struct data *hx, struct data *hy, struct data *ez,
+                   struct MpiParams *mpi_params, MPI_Request *requests) {
+  // First, we set the sent_data
+
+  // XSTART
+  for (int i = 0; i < sizes[X_START] - 1; i++) {
+    // hx
+    sent_data[X_START][i] = GET(hx, 0, i);
+    // hy
+    sent_data[X_START][sizes[X_START] + i] = GET(hy, 0, i);
+    // ez
+    sent_data[X_START][sizes[X_START] * 2 + i] = GET(ez, 0, i);
+  }
+
+  // XEND
+  for (int i = 0; i < sizes[X_END] - 1; i++) {
+    // hx
+    sent_data[X_END][i] = GET(hx, sizes[Y_START] - 1, i);
+    // hy
+    sent_data[X_END][sizes[X_END] + i] = GET(hy, sizes[Y_START] - 1, i);
+    // ez
+    sent_data[X_END][sizes[X_END] * 2 + i] = GET(ez, sizes[Y_START] - 1, i);
+  }
+
+  // YSTART
+  for (int i = 0; i < sizes[Y_START] - 1; i++) {
+    // hx
+    sent_data[Y_START][i] = GET(hx, i, 0);
+    // hy
+    sent_data[Y_START][sizes[Y_START] + i] = GET(hy, i, 0);
+    // ez
+    sent_data[Y_START][sizes[Y_START] * 2 + i] = GET(ez, i, 0);
+  }
+
+  // YEND
+  for (int i = 0; i < sizes[Y_END] - 1; i++) {
+    // hx
+    sent_data[Y_END][i] = GET(hx, i, sizes[X_START] - 1);
+    // hy
+    sent_data[Y_END][sizes[Y_END] + i] = GET(hy, i, sizes[X_START] - 1);
+    // ez
+    sent_data[Y_END][sizes[Y_END] * 2 + i] = GET(ez, i, sizes[X_START] - 1);
+  }
+
+  // Now, we can send all of that
+  for (int i = 0; i < nb_neighbours; i++) {
+    struct neighbour current_neighbour = mpi_params->neighbours[i];
+    if (current_neighbour.rank != -1) {
+      switch (current_neighbour.pos) {
+      case X_START:
+        MPI_Isend(sent_data[X_START], sizes[X_START] * 3, MPI_DOUBLE,
+                  current_neighbour.rank, X_START, mpi_params->cart_comm,
+                  &(requests[X_START]));
+        break;
+      case X_END:
+        MPI_Isend(sent_data[X_END], sizes[X_END] * 3, MPI_DOUBLE,
+                  current_neighbour.rank, X_END, mpi_params->cart_comm,
+                  &(requests[X_END]));
+        break;
+      case Y_START:
+        MPI_Isend(sent_data[Y_START], sizes[Y_START] * 3, MPI_DOUBLE,
+                  current_neighbour.rank, Y_START, mpi_params->cart_comm,
+                  &(requests[Y_START]));
+        break;
+      case Y_END:
+        MPI_Isend(sent_data[Y_END], sizes[Y_END] * 3, MPI_DOUBLE,
+                  current_neighbour.rank, Y_END, mpi_params->cart_comm,
+                  &(requests[Y_END]));
+        break;
+      default:
+        break;
+      }
+    }
+  }
+}
+
+int receive_data_new(int nb_neighbours, double **received_data, int *sizes,
+                     struct data *hx, struct data *hy, struct data *ez,
+                     struct MpiParams *mpi_params) {
+  bool *received_neighbour = malloc(sizeof(bool) * nb_neighbours);
+  if (!received_neighbour) {
+    return EXIT_FAILURE;
+  }
+  for (int i = 0; i < nb_neighbours; i++)
+    received_neighbour[i] = false;
+
+  // Iterate over all neighbours
+  for (int i = 0; i < nb_neighbours; i++) {
+    struct neighbour current_neighbour = mpi_params->neighbours[i];
+    if (current_neighbour.rank != -1) {
+      switch (current_neighbour.pos) {
+      case X_START:
+        MPI_Recv(received_data[X_START], sizes[X_START] * 3, MPI_DOUBLE,
+                 current_neighbour.rank, X_END, mpi_params->cart_comm,
+                 MPI_STATUS_IGNORE);
+        received_neighbour[X_START] = true;
+        break;
+      case X_END:
+        MPI_Recv(received_data[X_END], sizes[X_END] * 3, MPI_DOUBLE,
+                 current_neighbour.rank, X_START, mpi_params->cart_comm,
+                 MPI_STATUS_IGNORE);
+        received_neighbour[X_END] = true;
+        break;
+      case Y_START:
+        MPI_Recv(received_data[Y_START], sizes[Y_START] * 3, MPI_DOUBLE,
+                 current_neighbour.rank, Y_END, mpi_params->cart_comm,
+                 MPI_STATUS_IGNORE);
+        received_neighbour[Y_START] = true;
+        break;
+      case Y_END:
+        MPI_Recv(received_data[Y_END], sizes[Y_END] * 3, MPI_DOUBLE,
+                 current_neighbour.rank, Y_START, mpi_params->cart_comm,
+                 MPI_STATUS_IGNORE);
+        received_neighbour[Y_END] = true;
+        break;
+      default:
+        break;
+      }
+    }
+  }
+
+  for (int i = 0; i < nb_neighbours; i++) {
+    if (received_neighbour[i]) {
+      switch (i) {
+      case X_START:
+        for (int j = 0; j < sizes[i] - 1; j++) {
+          SET(hx, 0, j, received_data[i][j]);
+          SET(hy, 0, j, received_data[i][sizes[i] + j]);
+          SET(ez, 0, j, received_data[i][2 * sizes[i] + j]);
+        }
+        break;
+      case X_END:
+        for (int j = 0; j < sizes[i] - 1; j++) {
+          SET(hx, sizes[Y_START] - 1, j, received_data[i][j]);
+          SET(hy, sizes[Y_START] - 1, j, received_data[i][sizes[i] + j]);
+          SET(ez, sizes[Y_START] - 1, j, received_data[i][2 * sizes[i] + j]);
+        }
+        break;
+      case Y_START:
+        for (int j = 0; j < sizes[i] - 1; j++) {
+          SET(hx, j, 0, received_data[i][j]);
+          SET(hy, j, 0, received_data[i][sizes[i] + j]);
+          SET(ez, j, 0, received_data[i][2 * sizes[i] + j]);
+        }
+        break;
+      case Y_END:
+        for (int j = 0; j < sizes[i] - 1; j++) {
+          SET(hx, j, sizes[X_START] - 1, received_data[i][j]);
+          SET(hy, j, sizes[X_START] - 1, received_data[i][sizes[i] + j]);
+          SET(ez, j, sizes[X_START] - 1, received_data[i][2 * sizes[i] + j]);
+        }
+        break;
+      default:
+        break;
+      }
+    }
+  }
+
+  free(received_neighbour);
+  return EXIT_SUCCESS;
+}
+
 int solve(struct SimulationParams *sim_params,
           struct PhysicalParams *phys_params, struct PerformanceData *perf_data,
           struct MpiParams *mpi_params) {
+  int nb_neighbours = sim_params->ndim * 2;
 
-  // Getting the relevant area
-  struct area *computation_area = get_area(sim_params, mpi_params);
-  int nx = computation_area->end[0] - computation_area->start[0];
-  int ny = computation_area->end[1] - computation_area->start[1];
-  DEBUG_PRINT("Process %d out of %d, has nx = %d and ny = %d\n\tstart_x = %d, "
-              "start_y = %d, end_x = %d, end_y = %d\n",
-              mpi_params->rank + 1, mpi_params->num_ranks, nx, ny,
-              computation_area->start[0], computation_area->start[1],
-              computation_area->end[0], computation_area->end[1]);
+  struct area *proc_area = get_area(sim_params, mpi_params);
+  int nx = proc_area->end[0] - proc_area->start[0];
+  int ny = proc_area->end[1] - proc_area->start[1];
 
-  // Initialization of data structures
   struct data ez, hx, hy;
+  double val = (double)mpi_params->rank;
   if (init_data(&ez, "ez", nx, ny, sim_params->steps[0], sim_params->steps[1],
-                computation_area->start[0] * sim_params->steps[0],
-                computation_area->start[1] * sim_params->steps[1], 0.) ||
+                proc_area->start[0] * sim_params->steps[0],
+                proc_area->start[1] * sim_params->steps[1], val) ||
       init_data(&hx, "hx", nx, ny - 1, sim_params->steps[0],
                 sim_params->steps[1],
-                computation_area->start[0] * sim_params->steps[0],
-                computation_area->start[1] * sim_params->steps[1], 0.) ||
+                proc_area->start[0] * sim_params->steps[0],
+                proc_area->start[1] * sim_params->steps[1], val) ||
       init_data(&hy, "hy", nx - 1, ny, sim_params->steps[0],
                 sim_params->steps[1],
-                computation_area->start[0] * sim_params->steps[0],
-                computation_area->start[1] * sim_params->steps[1], 0.)) {
+                proc_area->start[0] * sim_params->steps[0],
+                proc_area->start[1] * sim_params->steps[1], val)) {
     printf("Error: could not allocate data\n");
     return EXIT_FAILURE;
   }
 
-  // Start of the algorithm
   double start = GET_TIME();
-  DEBUG_PRINT("Starting the computation on process %d out of %d\n",
-              mpi_params->rank + 1, mpi_params->num_ranks);
 
-  // Setting up some things for the time loop
-  MPI_Request requests[4];
-  double *temp_x_start = NULL, *temp_x_end = NULL;
+  DEBUG_PRINT("Starting MPI structs allocation\n");
+
+  // Setting up MPI requests variables
+  // Note the initialization to NULL to be able to free even if not malloc yet
+  MPI_Request *requests = NULL;
+  double **sent_data = NULL;
   double **received_data = NULL;
-  int *counts = NULL;
-  temp_x_start = malloc(sizeof(double) * ny);
-  temp_x_end = malloc(sizeof(double) * ny);
-  received_data = malloc(sizeof(double *) * 2 * sim_params->ndim);
-  counts = malloc(sizeof(int) * 2 * sim_params->ndim);
-  if (!temp_x_start || !temp_x_end || !received_data || !counts) {
-    free(temp_x_start);
-    free(temp_x_end);
-    free(received_data);
-    free(counts);
-    free_area(computation_area);
+  int *sizes = NULL;
+  requests = malloc(sizeof(MPI_Request) * nb_neighbours);
+  sent_data = malloc(sizeof(double *) * nb_neighbours);
+  received_data = malloc(sizeof(double *) * nb_neighbours);
+  sizes = malloc(sizeof(int) * nb_neighbours);
+
+  if (!requests || !sent_data || !received_data || !sizes) {
+    printf("Error: allocation problem in initial MPI structs init\n");
+    free_all_solve_pointers(nb_neighbours, proc_area, &hx, &hy, &ez, requests,
+                            sent_data, received_data, sizes);
     return EXIT_FAILURE;
   }
 
-  for (int i = 0; i < 2 * sim_params->ndim; i++) {
-    counts[i] = (i < 2) ? ny : nx;
-    received_data[i] = malloc(sizeof(double) * counts[i]);
-    if (!received_data[i]) {
-      for (int j = 0; j < i; j++) {
-        free(received_data[j]);
-      }
-      free(received_data);
-      free(temp_x_end);
-      free(temp_x_start);
-      free_area(computation_area);
+  for (int i = 0; i < nb_neighbours; i++) {
+    sent_data[i] = NULL;
+    received_data[i] = NULL;
+  }
+  for (int i = 0; i < nb_neighbours; i++) {
+    // an x line is of length ny, inversly for an y line
+    sizes[i] = (i < 2) ? ny : nx;
+    // * 3 for hx, hy, ez
+    sent_data[i] = malloc(sizeof(double) * sizes[i] * 3);
+    received_data[i] = malloc(sizeof(double) * sizes[i] * 3);
+
+    if (!sent_data[i] || !received_data[i]) {
+      printf("Error: allocation problem in second MPI structs init\n");
+      free_all_solve_pointers(nb_neighbours, proc_area, &hx, &hy, &ez, requests,
+                              sent_data, received_data, sizes);
       return EXIT_FAILURE;
     }
   }
 
+  DEBUG_PRINT("Entering time loop\n");
   // Time loop
-  DEBUG_PRINT("starting time loop in process %d of %d\n", mpi_params->rank + 1,
-              mpi_params->num_ranks);
-  for (int n = 0; n < sim_params->size_of_space[sim_params->ndim]; n++) {
+  for (int t = 0; t < sim_params->size_of_space[sim_params->ndim]; t++) {
+    // Sending the data
+    send_data_new(nb_neighbours, sent_data, sizes, &hx, &hy, &ez, mpi_params,
+                  requests);
 
-    // Sending part
-    // tags : 0 to xstart, 1 to xend, 2 to ystart, 3 to yend
-    // First, we setup the buffers for X_START and X_END
-    for (int i = 0; i < ny; i++) {
-      temp_x_start[i] = GET(&ez, 0, i);
-      temp_x_end[i] = GET(&hy, nx - 1, i);
-    }
+    // Receiving the data
+    receive_data_new(nb_neighbours, received_data, sizes, &hx, &hy, &ez,
+                     mpi_params);
 
-    // Then, we wend the data to the neighbours
-    DEBUG_PRINT("Starting to send data on process %d\n", mpi_params->rank + 1);
-    for (int i = 0; i < 2 * sim_params->ndim; i++) {
-      struct neighbour current_neighbour = mpi_params->neighbours[i];
-      if (current_neighbour.rank != -1) {
-        switch (current_neighbour.pos) {
-        case X_START:
-          DEBUG_PRINT("Process %d sending to %d, tag %d\n",
-                      mpi_params->rank + 1, current_neighbour.rank + 1, 0);
-          MPI_Isend(temp_x_start, ny, MPI_DOUBLE, current_neighbour.rank, 0,
-                    mpi_params->cart_comm, &requests[0]);
-          break;
-        case Y_START:
-          DEBUG_PRINT("Process %d sending to %d, tag %d\n",
-                      mpi_params->rank + 1, current_neighbour.rank + 1, 2);
-          MPI_Isend(ez.values, nx, MPI_DOUBLE, current_neighbour.rank, 2,
-                    mpi_params->cart_comm, &requests[1]);
-          break;
-        case X_END:
-          DEBUG_PRINT("Process %d sending to %d, tag %d\n",
-                      mpi_params->rank + 1, current_neighbour.rank + 1, 1);
-          MPI_Isend(temp_x_end, ny, MPI_DOUBLE, current_neighbour.rank, 1,
-                    mpi_params->cart_comm, &requests[2]);
-          break;
-        case Y_END:
-          DEBUG_PRINT("Process %d sending to %d, tag %d\n",
-                      mpi_params->rank + 1, current_neighbour.rank + 1, 3);
-          MPI_Isend(hx.values, nx, MPI_DOUBLE, current_neighbour.rank, 3,
-                    mpi_params->cart_comm, &requests[3]);
-          break;
-        default:
-          break;
-        }
-      }
-    }
-
-    // Now, we get into the computation
-    if (n && (n % (sim_params->size_of_space[sim_params->ndim] / 10)) == 0) {
+    if (t && (t % (sim_params->size_of_space[sim_params->ndim] / 10)) == 0) {
       double time_sofar = GET_TIME() - start;
       double eta =
-          (sim_params->size_of_space[sim_params->ndim] - n) * time_sofar / n;
-      printf("Computing time step %d/%d (ETA: %g seconds)     \r", n,
+          (sim_params->size_of_space[sim_params->ndim] - t) * time_sofar / t;
+      printf("Computing time step %d/%d (ETA: %g seconds)     \r", t,
              sim_params->size_of_space[sim_params->ndim], eta);
       fflush(stdout);
     }
 
-    // hx loop
-    // chy = dt / (dy * mu)
     double chy = sim_params->steps[sim_params->ndim] /
                  (sim_params->steps[1] * phys_params->mu);
     for (int j = 0; j < ny - 1; j++) {
@@ -297,21 +437,22 @@ int solve(struct SimulationParams *sim_params,
     // impose source
     int source_x = sim_params->size_of_space[0] / 2;
     int source_y = sim_params->size_of_space[1] / 2;
-    double t = n * sim_params->steps[sim_params->ndim];
-    if ((computation_area->start[0] <= source_x &&
-         computation_area->end[0] > source_x) &&
-        (computation_area->start[1] <= source_y &&
-         computation_area->end[1] > source_y)) {
+    double n = t * sim_params->steps[sim_params->ndim];
+    if ((proc_area->start[0] <= source_x && proc_area->end[0] > source_x) &&
+        (proc_area->start[1] <= source_y && proc_area->end[1] > source_y)) {
       // DEBUG_PRINT("Process %d applying source at %d, %d\n",
       //             mpi_params->rank + 1, source_x, source_y);
       switch (sim_params->problem_id) {
       case 1:
       case 2:
         // sinusoidal excitation at 2.4 GHz in the middle of the domain
-        SET(&ez, source_x, source_y, sin(2. * M_PI * 2.4e9 * t));
+        SET(&ez, source_x - proc_area->start[0], source_y - proc_area->start[1],
+            sin(2. * M_PI * 2.4e9 * n));
         break;
       case 3:
-        SET(&ez, source_x, source_y, sin(2. * M_PI * 2.4e9 * t));
+      case 4:
+        SET(&ez, source_x - proc_area->start[0], source_y - proc_area->start[1],
+            sin(2. * M_PI * 2.4e9 * n));
         break;
       default:
         printf("Error: unknown source\n");
@@ -319,72 +460,25 @@ int solve(struct SimulationParams *sim_params,
       }
     }
 
-    // Now, we receive the data from the neighbours
-    for (int i = 0; i < 2 * sim_params->ndim; i++) {
-      struct neighbour current_neighbour = mpi_params->neighbours[i];
-      if (current_neighbour.rank != -1) {
-        int tag = (current_neighbour.pos % 2) ? current_neighbour.pos - 1
-                                              : current_neighbour.pos + 1;
-        int size = (tag < 2) ? ny : nx;
-        DEBUG_PRINT("Process %d waiting for data from %d, tag %d\n",
-                    mpi_params->rank + 1, current_neighbour.rank + 1, tag);
-        MPI_Recv(received_data[i], size, MPI_DOUBLE, current_neighbour.rank,
-                 tag, mpi_params->cart_comm, MPI_STATUS_IGNORE);
-      }
-    }
-
-    // Update what needs to be updated
-    for (int i = 0; i < 2 * sim_params->ndim; i++) {
-      struct neighbour current_neighbour = mpi_params->neighbours[i];
-      if (current_neighbour.rank != -1) {
-        switch (current_neighbour.pos) {
-        case Y_END:
-          for (int j = 0; j < nx; j++) {
-            double hx_y_end_i =
-                GET(&hx, j, ny - 1) -
-                chy * (received_data[Y_END][j] - GET(&ez, j, ny - 2));
-            SET(&hx, nx - 1, j, hx_y_end_i);
-          }
-          break;
-        default:
-          break;
-        }
-      }
-    }
-
     // output step data in VTK format
-    if (sim_params->sampling_rate && !(n % sim_params->sampling_rate)) {
-      write_data_vtk(&ez, n, mpi_params->rank);
-      // write_data_vtk(&hx, n, 0);
-      // write_data_vtk(&hy, n, 0);
+    if (sim_params->sampling_rate && !(t % sim_params->sampling_rate)) {
+      write_data_vtk(&ez, t, mpi_params->rank);
     }
   }
-
-  // write VTK manifest, linking to individual step data files
   if (mpi_params->rank == 0)
     write_manifest_vtk("ez", sim_params->steps[sim_params->ndim],
                        sim_params->size_of_space[sim_params->ndim],
                        sim_params->sampling_rate, mpi_params->num_ranks);
-  // write_manifest_vtk("hx", sim_params->steps[sim_params->ndim],
-  // sim_params->size_of_space[sim_params->ndim], sampling_rate, 1);
-  // write_manifest_vtk("hy", sim_params->steps[sim_params->ndim],
-  // sim_params->size_of_space[sim_params->ndim], sampling_rate, 1);
 
   double time = GET_TIME() - start;
   double MUps_per_sec = 1.e-6 * (double)nx * (double)ny *
                         (double)sim_params->size_of_space[sim_params->ndim] /
                         time;
-
   perf_data->time = time;
   perf_data->MUps_per_sec = MUps_per_sec;
 
-  free_data(&ez);
-  free_data(&hx);
-  free_data(&hy);
-  free_area(computation_area);
-
-  free(temp_x_start);
-  free(temp_x_end);
+  free_all_solve_pointers(nb_neighbours, proc_area, &hx, &hy, &ez, requests,
+                          sent_data, received_data, sizes);
 
   printf("\n");
 

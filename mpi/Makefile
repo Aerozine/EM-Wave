@@ -11,7 +11,7 @@ LDFLAGS= -lm -lmpi
 
 $(BLD_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(BLD_DIR)
-	$(CC) $(CLFAGS) -I $(INC) -c $< -o $@
+	$(CC) $(CLFAGS) -I $(INC) -g -c $< -o $@
 
 $(TARGET): $(OBJS)
 	$(CC) $^ -o ../$(TARGET) $(LDFLAGS)
