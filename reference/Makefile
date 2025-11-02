@@ -15,7 +15,7 @@ $(BLD_DIR):
 	@mkdir -p $(BLD_DIR)
 
 $(BLD_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CLFAGS) -I $(INC) -c $< -o $@
+	$(CC) $(CLFAGS) -I $(INC) -DDEBUG -c $< -o $@
 
 $(TARGET):$(OBJS)
 	$(CC) $^ -o ../$(TARGET) $(LDFLAGS)
