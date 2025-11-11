@@ -17,10 +17,12 @@
 #define GET(data, i, j) ((data)->values[(data)->nx * (j) + (i)])
 #define SET(data, i, j, val) ((data)->values[(data)->nx * (j) + (i)] = (val))
 
-void print_perf_data(struct PerformanceData *perf_data) {
+void print_perf_data(struct PerformanceData *perf_data,
+                     struct MpiParams *mpi_params) {
   fprintf(stdout, "Performance : \n");
   fprintf(stdout, "\t- Time : %g\n", perf_data->time);
-  fprintf(stdout, "\t- MUpdates/s : %g\n", perf_data->MUps_per_sec);
+  fprintf(stdout, "\t- MUpdates/s : %g\n",
+          perf_data->MUps_per_sec * mpi_params->num_ranks);
 }
 
 void print_sim_params(struct SimulationParams *sim_params) {
@@ -69,7 +71,8 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  print_sim_params(&sim_params);
+  if (mpi_params.use_mpi && mpi_params.rank == 0)
+    print_sim_params(&sim_params);
 
   if (solve(&sim_params, &phys_params, &perf_data, &mpi_params)) {
     if (mpi_params.use_mpi)
@@ -79,7 +82,8 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  print_perf_data(&perf_data);
+  if (mpi_params.use_mpi && mpi_params.rank == 0)
+    print_perf_data(&perf_data, &mpi_params);
 
   if (mpi_params.use_mpi)
     MPI_Finalize();

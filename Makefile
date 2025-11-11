@@ -14,8 +14,8 @@ run:$(TARGET)
 	./$(TARGET) 1
 
 run_mpi:$(TARGET)
-	mpirun -n 4 --use-hwthread-cpus valgrind ./$(TARGET) 1 --use-mpi 2>out.txt
-# 	mpirun -n 4 $(TARGET) 2 --use-mpi
+# 	mpirun -n 4 $(TARGET) 1 --use-mpi
+	mpirun -n 4 $(TARGET) 2 --use-mpi
 
 $(TARGET): clean_all
 	$(MAKE) -C $(BUILD) RES_FOLDER=$(RES_FOLDER) -j$(shell nproc) build
