@@ -377,8 +377,6 @@ int solve(struct SimulationParams *sim_params,
     return EXIT_FAILURE;
   }
 
-  double start = GET_TIME();
-
   // Setting up MPI requests variables
   // Note the initialization to NULL to be able to free even if not malloc yet
   MPI_Request *send_requests = NULL;
@@ -434,6 +432,8 @@ int solve(struct SimulationParams *sim_params,
       received_data[i][j] = 0.;
     }
   }
+
+  double start = GET_TIME();
 
   // Time loop
   for (int t = 0; t < sim_params->size_of_space[sim_params->ndim]; t++) {
@@ -500,8 +500,8 @@ int solve(struct SimulationParams *sim_params,
     // output step data in VTK format
     if (sim_params->sampling_rate && !(t % sim_params->sampling_rate)) {
       write_data_vtk(&ez, t, mpi_params->rank);
-      write_data_vtk(&hx, t, mpi_params->rank);
-      write_data_vtk(&hy, t, mpi_params->rank);
+      // write_data_vtk(&hx, t, mpi_params->rank);
+      // write_data_vtk(&hy, t, mpi_params->rank);
     }
   }
 
@@ -509,12 +509,12 @@ int solve(struct SimulationParams *sim_params,
     write_manifest_vtk("ez", sim_params->steps[sim_params->ndim],
                        sim_params->size_of_space[sim_params->ndim],
                        sim_params->sampling_rate, mpi_params->num_ranks);
-    write_manifest_vtk("hx", sim_params->steps[sim_params->ndim],
-                       sim_params->size_of_space[sim_params->ndim],
-                       sim_params->sampling_rate, mpi_params->num_ranks);
-    write_manifest_vtk("hy", sim_params->steps[sim_params->ndim],
-                       sim_params->size_of_space[sim_params->ndim],
-                       sim_params->sampling_rate, mpi_params->num_ranks);
+    // write_manifest_vtk("hx", sim_params->steps[sim_params->ndim],
+    //                    sim_params->size_of_space[sim_params->ndim],
+    //                    sim_params->sampling_rate, mpi_params->num_ranks);
+    // write_manifest_vtk("hy", sim_params->steps[sim_params->ndim],
+    //                    sim_params->size_of_space[sim_params->ndim],
+    //                    sim_params->sampling_rate, mpi_params->num_ranks);
   }
   double time = GET_TIME() - start;
 
