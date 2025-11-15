@@ -16,9 +16,9 @@ Afterwards, it computes the number of nodes according to each direction of space
 
 The data structures `ez`, `hx`, and `hy` are then created. They all are $nx * ny$, to make sending and receiving data easier.
 
-Then, all of the necessary arrays for sending and receiving data are created. The send and receive MPI requests are in `send_requests` and `recv_requests`. The sent data is stored in `sent_data`. The first level is the neighbour (represented by NeighbourPosition), and the second is the data. The data is an array of size $nx$ if the neighbour is in direction $y$, and $ny$ in direction $x$. The arrays are stored sequentially, with first $hx$, $hy$, and $ez$. Thus, the data arrays are of size $3 * nx$ or $3 * ny$. An array of boolean `received_neighbour` is used to track if data has been received from a given neighbour or not.
+Then, all of the necessary arrays for sending and receiving data are created. The send and receive MPI requests are in `send_requests` and `recv_requests`. The sent data is stored in `sent_data`. The first level is the neighbour (represented by NeighbourPosition), and the second is the data. The data is an array of size $nx$ if the neighbour is in direction $y$, and $ny$ in direction $x$. The arrays are stored such that the array corresponding to a certain neighbour only stores the data needed by/from that neighbour. Thus, the data arrays are of size $nx$ or $ny$. An array of boolean `received_neighbour` is used to track if data has been received from a given neighbour or not.
 
-Afterwards, the time loop begins. It starts by sending and receiving all of the data. This is done with functions `send_data_X`, `send_data_Y`, `receive_data_X`, and `receive_data_Y`, which are inline functions, and wrapped into an `exchange_data` function. This is done asynchronously, as coordinating which process should start receiving or sending first, and that in each direction of space would be a pain in the neck. Note that `MPI_Waitall` is used to make sure that everything is good to go for the computation.
+The data is sent and received as soon as the computation is done, and the waits are right before the data is needed. It is all asynchronous, to allow for better performance.
 
 The function then prints some information on the advancement of the computation. Afterwards, it calls the three big functions: `hx_loop`, `hy_loop`, and `ez_loop`. Those are also defined as `inline` functions, to not loose too much performance.
 
@@ -34,29 +34,9 @@ The start and end of the processe's computation domain are then determined, taki
 
 The neighbours are then determined, using `MPI_Cart_shift`. They are stored in `mpi_params->neighbours`, as a `neighbour` structure. The position of neighbours is tracked with a `NeighbourPosition` enum. For direction $i$ of space, the neighbour at the start is denoted with $2 * i$, and the one at the end with $2 * i + 1$. It is also possible to use `X_START`, `X_END`, `Y_START`, and `Y_END` for more clarity. The rank of the neighbour is then stored at `mpi_params->neighbours[<position>].rank`.
 
-### `send_data_X`
+### Send data & receive data
 
-This function starts by initializing the relevant requests to `MPI_REQUEST_NULL`. It then copies the relevant data to `sent_data`. This is done first for `X_START`, then for `X_END`.
-
-For `X_START`, data is copied from row $0$, and it iterates on the columns. This is not ideal, as the matrix is row-based, but we can't really do anything about it. The same is done for `X_END`, where the last row is sent.
-
-Afterwards, the data is sent, with the tag equal to the destination (`X_START` or `X_END`). The request is stored in the requests array.
-
-### `send_data_Y`
-
-This function is essentially the same as `send_data_X`, but for $y$.
-
-### `receive_data_X` & `receive_data_Y`
-
-First, we set the `received_neighbour` to false. It is then necessary that this function be called before `receive_data_Y`.
-
-It then checks for `X_START` and `X_END`, receiving the data is the neighbour exists. Note that the tags are inverted, as it is set by the sending operation`
-
-`receive_data_Y` does essentially the same thing.
-
-### Send data
-
-sends data from given data struct, switch on name, send where needed
+Sends & receives data from given struct.
 
 Ez :
 
@@ -74,12 +54,7 @@ Hy:
 -   send to X_END
 -   receive from X_START
 
-Keep requests as is, and received neighbour also.
-For each neighbour, you just have to send one data. => send, receive smaller.
-
-### receive data
-
-received data to pointer, switch on name.
+For each neighbour, you just have to send one data. => send, receive optimized.
 
 ### `hx_loop`
 
