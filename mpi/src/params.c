@@ -88,7 +88,7 @@ int set_params(struct SimulationParams *sim_params) {
                            1. / (sim_params->steps[1] *
                                  sim_params->steps[1]))); // cfl / 2
     sim_params->size_of_space[sim_params->ndim] = 50;
-    sim_params->sampling_rate = 2;
+    sim_params->sampling_rate = 0;
     break;
   default:
     printf("Error: unknown problem id %d\n", sim_params->problem_id);

@@ -1,7 +1,7 @@
 .PHONY: build clean 
 INC := include
 TARGET?=hpc_project
-CFLAGS += -O3
+CFLAGS += -O3 -ffast-math -march=native -funroll-loops -ftree-vectorize
 SRC_DIR=src
 BLD_DIR=build
 build : $(TARGET)
@@ -11,7 +11,7 @@ LDFLAGS= -lm -lmpi
 
 $(BLD_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(BLD_DIR)
-	$(CC) $(CFLAGS) -I $(INC) -g -c $< -o $@
+	$(CC) $(CFLAGS) -I $(INC) -c $< -o $@
 
 $(TARGET): $(OBJS)
 	$(CC) $^ -o ../$(TARGET) $(LDFLAGS)

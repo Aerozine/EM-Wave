@@ -58,7 +58,7 @@ int write_data_vtk(struct data *data, int step, int rank) {
           "    <Piece Extent=\"0 %d 0 %d 0 %d\">\n"
           "      <PointData Scalars=\"scalar_data\">\n"
           "        <DataArray"
-          " type=\"Float64\""
+          " type=\"Float32\""
           " Name=\"%s\""
           " format=\"appended\""
           " offset=\"0\""
