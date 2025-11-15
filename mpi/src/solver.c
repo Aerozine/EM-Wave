@@ -129,8 +129,8 @@ struct area *get_area(struct SimulationParams *sim_params,
 void free_all_solve_pointers(int nb_neighbours, struct area *proc_area,
                              struct data *hx, struct data *hy, struct data *ez,
                              MPI_Request *send_requests,
-                             MPI_Request *recv_requests, double **sent_data,
-                             double **received_data, bool *received_neighbour,
+                             MPI_Request *recv_requests, float **sent_data,
+                             float **received_data, bool *received_neighbour,
                              double *origins) {
   free_area(proc_area);
   free_data(hx);
@@ -152,13 +152,13 @@ void free_all_solve_pointers(int nb_neighbours, struct area *proc_area,
 inline void hx_loop(struct data *hx, struct data *ez,
                     struct SimulationParams *sim_params,
                     struct PhysicalParams *phys_params,
-                    struct MpiParams *mpi_params, double **received_data,
+                    struct MpiParams *mpi_params, float **received_data,
                     bool *received_neighbour, MPI_Request *requests) {
-  double chy = sim_params->steps[sim_params->ndim] /
-               (sim_params->steps[1] * phys_params->mu);
+  float chy = sim_params->steps[sim_params->ndim] /
+              (sim_params->steps[1] * phys_params->mu);
   for (int j = 0; j < mpi_params->sizes[1] - 1; j++) {
     for (int i = 0; i < mpi_params->sizes[0]; i++) {
-      double hx_ij = GET(hx, i, j) - chy * (GET(ez, i, j + 1) - GET(ez, i, j));
+      float hx_ij = GET(hx, i, j) - chy * (GET(ez, i, j + 1) - GET(ez, i, j));
       SET(hx, i, j, hx_ij);
     }
   }
@@ -166,9 +166,9 @@ inline void hx_loop(struct data *hx, struct data *ez,
   MPI_Wait(&(requests[Y_END]), MPI_STATUS_IGNORE);
   if (received_neighbour[Y_END]) {
     for (int i = 0; i < mpi_params->sizes[0]; i++) {
-      double hx_ij = GET(hx, i, mpi_params->sizes[1] - 1) -
-                     chy * (received_data[Y_END][i] -
-                            GET(ez, i, mpi_params->sizes[1] - 1));
+      float hx_ij = GET(hx, i, mpi_params->sizes[1] - 1) -
+                    chy * (received_data[Y_END][i] -
+                           GET(ez, i, mpi_params->sizes[1] - 1));
       SET(hx, i, mpi_params->sizes[1] - 1, hx_ij);
     }
   } // Don't update if no neighbours.
@@ -177,13 +177,13 @@ inline void hx_loop(struct data *hx, struct data *ez,
 inline void hy_loop(struct data *hy, struct data *ez,
                     struct SimulationParams *sim_params,
                     struct PhysicalParams *phys_params,
-                    struct MpiParams *mpi_params, double **received_data,
+                    struct MpiParams *mpi_params, float **received_data,
                     bool *received_neighbour, MPI_Request *requests) {
-  double chx = sim_params->steps[sim_params->ndim] /
-               (sim_params->steps[0] * phys_params->mu);
+  float chx = sim_params->steps[sim_params->ndim] /
+              (sim_params->steps[0] * phys_params->mu);
   for (int j = 0; j < mpi_params->sizes[1]; j++) {
     for (int i = 0; i < mpi_params->sizes[0] - 1; i++) {
-      double hy_ij = GET(hy, i, j) + chx * (GET(ez, i + 1, j) - GET(ez, i, j));
+      float hy_ij = GET(hy, i, j) + chx * (GET(ez, i + 1, j) - GET(ez, i, j));
       SET(hy, i, j, hy_ij);
     }
   }
@@ -191,9 +191,9 @@ inline void hy_loop(struct data *hy, struct data *ez,
   MPI_Wait(&(requests[X_END]), MPI_STATUS_IGNORE);
   if (received_neighbour[X_END]) {
     for (int j = 0; j < mpi_params->sizes[1]; j++) {
-      double hy_ij = GET(hy, mpi_params->sizes[0] - 1, j) +
-                     chx * (received_data[X_END][j] -
-                            GET(ez, mpi_params->sizes[0] - 1, j));
+      float hy_ij = GET(hy, mpi_params->sizes[0] - 1, j) +
+                    chx * (received_data[X_END][j] -
+                           GET(ez, mpi_params->sizes[0] - 1, j));
       SET(hy, mpi_params->sizes[0] - 1, j, hy_ij);
     }
   }
@@ -202,16 +202,16 @@ inline void hy_loop(struct data *hy, struct data *ez,
 inline void ez_loop(struct data *hx, struct data *hy, struct data *ez,
                     struct SimulationParams *sim_params,
                     struct PhysicalParams *phys_params,
-                    struct MpiParams *mpi_params, double **received_data,
+                    struct MpiParams *mpi_params, float **received_data,
                     bool *received_neighbour, MPI_Request *requests) {
-  double cex = sim_params->steps[sim_params->ndim] /
-               (sim_params->steps[0] * phys_params->eps),
-         cey = sim_params->steps[sim_params->ndim] /
-               (sim_params->steps[1] * phys_params->eps);
+  float cex = sim_params->steps[sim_params->ndim] /
+              (sim_params->steps[0] * phys_params->eps),
+        cey = sim_params->steps[sim_params->ndim] /
+              (sim_params->steps[1] * phys_params->eps);
   for (int j = 1; j < mpi_params->sizes[1]; j++) {
     for (int i = 1; i < mpi_params->sizes[0]; i++) {
-      double ez_ij = GET(ez, i, j) + cex * (GET(hy, i, j) - GET(hy, i - 1, j)) -
-                     cey * (GET(hx, i, j) - GET(hx, i, j - 1));
+      float ez_ij = GET(ez, i, j) + cex * (GET(hy, i, j) - GET(hy, i - 1, j)) -
+                    cey * (GET(hx, i, j) - GET(hx, i, j - 1));
       SET(ez, i, j, ez_ij);
     }
   }
@@ -219,17 +219,17 @@ inline void ez_loop(struct data *hx, struct data *hy, struct data *ez,
   MPI_Wait(&(requests[X_START]), MPI_STATUS_IGNORE);
   if (received_neighbour[X_START]) {
     for (int j = 1; j < mpi_params->sizes[1]; j++) {
-      double ez_ij = GET(ez, 0, j) +
-                     cex * (GET(hy, 0, j) - received_data[X_START][j]) -
-                     cey * (GET(hx, 0, j) - GET(hx, 0, j - 1));
+      float ez_ij = GET(ez, 0, j) +
+                    cex * (GET(hy, 0, j) - received_data[X_START][j]) -
+                    cey * (GET(hx, 0, j) - GET(hx, 0, j - 1));
       SET(ez, 0, j, ez_ij);
     }
 
     MPI_Wait(&(requests[Y_START]), MPI_STATUS_IGNORE);
     if (received_neighbour[Y_START]) {
-      double ez_ij = GET(ez, 0, 0) +
-                     cex * (GET(hy, 0, 0) - received_data[X_START][0]) -
-                     cey * (GET(hx, 0, 0) - received_data[Y_START][0]);
+      float ez_ij = GET(ez, 0, 0) +
+                    cex * (GET(hy, 0, 0) - received_data[X_START][0]) -
+                    cey * (GET(hx, 0, 0) - received_data[Y_START][0]);
       SET(ez, 0, 0, ez_ij);
     }
   }
@@ -237,15 +237,15 @@ inline void ez_loop(struct data *hx, struct data *hy, struct data *ez,
   MPI_Wait(&(requests[Y_START]), MPI_STATUS_IGNORE);
   if (received_neighbour[Y_START]) {
     for (int i = 1; i < mpi_params->sizes[0]; i++) {
-      double ez_ij = GET(ez, i, 0) + cex * (GET(hy, i, 0) - GET(hy, i - 1, 0)) -
-                     cey * (GET(hx, i, 0) - received_data[Y_START][i]);
+      float ez_ij = GET(ez, i, 0) + cex * (GET(hy, i, 0) - GET(hy, i - 1, 0)) -
+                    cey * (GET(hx, i, 0) - received_data[Y_START][i]);
       SET(ez, i, 0, ez_ij);
     }
   }
 }
 
 inline void send_data(struct data *dat, MPI_Request *requests,
-                      struct MpiParams *mpi_params, double **sent_data) {
+                      struct MpiParams *mpi_params, float **sent_data) {
   const char *name = dat->name;
 
   if (strcmp(name, "ez") == 0) {
@@ -255,7 +255,7 @@ inline void send_data(struct data *dat, MPI_Request *requests,
         sent_data[X_START][i] = GET(dat, 0, i);
 
       requests[X_START] = MPI_REQUEST_NULL;
-      MPI_Isend(sent_data[X_START], mpi_params->send_sizes[0], MPI_DOUBLE,
+      MPI_Isend(sent_data[X_START], mpi_params->send_sizes[0], MPI_FLOAT,
                 mpi_params->neighbours[X_START].rank, X_START,
                 mpi_params->cart_comm, &(requests[X_START]));
     }
@@ -265,7 +265,7 @@ inline void send_data(struct data *dat, MPI_Request *requests,
         sent_data[Y_START][i] = GET(dat, i, 0);
 
       requests[Y_START] = MPI_REQUEST_NULL;
-      MPI_Isend(sent_data[Y_START], mpi_params->send_sizes[1], MPI_DOUBLE,
+      MPI_Isend(sent_data[Y_START], mpi_params->send_sizes[1], MPI_FLOAT,
                 mpi_params->neighbours[Y_START].rank, Y_START,
                 mpi_params->cart_comm, &(requests[Y_START]));
     }
@@ -278,7 +278,7 @@ inline void send_data(struct data *dat, MPI_Request *requests,
 
     requests[Y_END] = MPI_REQUEST_NULL;
 
-    MPI_Isend(sent_data[Y_END], mpi_params->send_sizes[1], MPI_DOUBLE,
+    MPI_Isend(sent_data[Y_END], mpi_params->send_sizes[1], MPI_FLOAT,
               mpi_params->neighbours[Y_END].rank, Y_END, mpi_params->cart_comm,
               &(requests[Y_END]));
   } else if (strcmp(name, "hy") == 0 &&
@@ -288,13 +288,13 @@ inline void send_data(struct data *dat, MPI_Request *requests,
 
     requests[X_END] = MPI_REQUEST_NULL;
 
-    MPI_Isend(sent_data[X_END], mpi_params->send_sizes[0], MPI_DOUBLE,
+    MPI_Isend(sent_data[X_END], mpi_params->send_sizes[0], MPI_FLOAT,
               mpi_params->neighbours[X_END].rank, X_END, mpi_params->cart_comm,
               &(requests[X_END]));
   }
 }
 
-inline void receive_data(struct data *dat, double **received_data,
+inline void receive_data(struct data *dat, float **received_data,
                          bool *received_neighbour, MPI_Request *requests,
                          struct MpiParams *mpi_params) {
   const char *name = dat->name;
@@ -302,7 +302,7 @@ inline void receive_data(struct data *dat, double **received_data,
   if (strcmp(name, "ez") == 0) {
     if (mpi_params->neighbours[X_END].rank != -1) {
       requests[X_END] = MPI_REQUEST_NULL;
-      MPI_Irecv(received_data[X_END], mpi_params->send_sizes[0], MPI_DOUBLE,
+      MPI_Irecv(received_data[X_END], mpi_params->send_sizes[0], MPI_FLOAT,
                 mpi_params->neighbours[X_END].rank, X_START,
                 mpi_params->cart_comm, &(requests[X_END]));
       received_neighbour[X_END] = true;
@@ -310,7 +310,7 @@ inline void receive_data(struct data *dat, double **received_data,
 
     if (mpi_params->neighbours[Y_END].rank != -1) {
       requests[Y_END] = MPI_REQUEST_NULL;
-      MPI_Irecv(received_data[Y_END], mpi_params->send_sizes[1], MPI_DOUBLE,
+      MPI_Irecv(received_data[Y_END], mpi_params->send_sizes[1], MPI_FLOAT,
                 mpi_params->neighbours[Y_END].rank, Y_START,
                 mpi_params->cart_comm, &(requests[Y_END]));
       received_neighbour[Y_END] = true;
@@ -318,14 +318,14 @@ inline void receive_data(struct data *dat, double **received_data,
   } else if (strcmp(name, "hx") == 0 &&
              mpi_params->neighbours[Y_START].rank != -1) {
     requests[Y_START] = MPI_REQUEST_NULL;
-    MPI_Irecv(received_data[Y_START], mpi_params->send_sizes[1], MPI_DOUBLE,
+    MPI_Irecv(received_data[Y_START], mpi_params->send_sizes[1], MPI_FLOAT,
               mpi_params->neighbours[Y_START].rank, Y_END,
               mpi_params->cart_comm, &(requests[Y_START]));
     received_neighbour[Y_START] = true;
   } else if (strcmp(name, "hy") == 0 &&
              mpi_params->neighbours[X_START].rank != -1) {
     requests[X_START] = MPI_REQUEST_NULL;
-    MPI_Irecv(received_data[X_START], mpi_params->send_sizes[0], MPI_DOUBLE,
+    MPI_Irecv(received_data[X_START], mpi_params->send_sizes[0], MPI_FLOAT,
               mpi_params->neighbours[X_START].rank, X_END,
               mpi_params->cart_comm, &(requests[X_START]));
     received_neighbour[X_START] = true;
@@ -362,7 +362,7 @@ int solve(struct SimulationParams *sim_params,
   }
 
   struct data ez, hx, hy;
-  double val = 0.;
+  float val = 0.;
   // nx, ny
   if (init_data(&ez, "ez", mpi_params->sizes[0], mpi_params->sizes[1],
                 sim_params->steps[0], sim_params->steps[1], origins[0],
@@ -383,14 +383,14 @@ int solve(struct SimulationParams *sim_params,
   // Note the initialization to NULL to be able to free even if not malloc yet
   MPI_Request *send_requests = NULL;
   MPI_Request *recv_requests = NULL;
-  double **sent_data = NULL;
-  double **received_data = NULL;
+  float **sent_data = NULL;
+  float **received_data = NULL;
   bool *received_neighbour = NULL;
   received_neighbour = malloc(sizeof(bool) * nb_neighbours);
   send_requests = malloc(sizeof(MPI_Request) * nb_neighbours);
   recv_requests = malloc(sizeof(MPI_Request) * nb_neighbours);
-  sent_data = malloc(sizeof(double *) * nb_neighbours);
-  received_data = malloc(sizeof(double *) * nb_neighbours);
+  sent_data = malloc(sizeof(float *) * nb_neighbours);
+  received_data = malloc(sizeof(float *) * nb_neighbours);
 
   if (!send_requests || !recv_requests || !sent_data || !received_data ||
       !received_neighbour) {
@@ -411,8 +411,8 @@ int solve(struct SimulationParams *sim_params,
     // * 3 for hx, hy, ez
     int size = (i < 2) ? mpi_params->send_sizes[0] : mpi_params->send_sizes[1];
 
-    sent_data[i] = malloc(sizeof(double) * size);
-    received_data[i] = malloc(sizeof(double) * size);
+    sent_data[i] = malloc(sizeof(float) * size);
+    received_data[i] = malloc(sizeof(float) * size);
 
     if (!sent_data[i] || !received_data[i]) {
       printf("Error: allocation problem in second MPI structs init\n");
