@@ -82,13 +82,13 @@ int set_params(struct SimulationParams *sim_params) {
   case 3: // larger size problem, usable for initial scaling tests
     sim_params->steps[0] = sim_params->steps[1] =
         (3.e8 / 2.4e9) / 40.; // wavelength / 40
-    sim_params->size_of_space[0] = sim_params->size_of_space[1] = 4000;
+    sim_params->size_of_space[0] = sim_params->size_of_space[1] = 16000;
     sim_params->steps[sim_params->ndim] =
         0.1 / (3.e8 * sqrt(1. / (sim_params->steps[0] * sim_params->steps[0]) +
                            1. / (sim_params->steps[1] *
                                  sim_params->steps[1]))); // cfl / 2
-    sim_params->size_of_space[sim_params->ndim] = 2500;
-    sim_params->sampling_rate = 1; // don't save results
+    sim_params->size_of_space[sim_params->ndim] = 50;
+    sim_params->sampling_rate = 2;
     break;
   default:
     printf("Error: unknown problem id %d\n", sim_params->problem_id);
@@ -108,4 +108,6 @@ void free_params(struct SimulationParams *sim_params,
   free(mpi_params->periods);
   free(mpi_params->coords);
   free(mpi_params->neighbours);
+  free(mpi_params->sizes);
+  free(mpi_params->send_sizes);
 }

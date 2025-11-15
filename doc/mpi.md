@@ -54,6 +54,33 @@ It then checks for `X_START` and `X_END`, receiving the data is the neighbour ex
 
 `receive_data_Y` does essentially the same thing.
 
+### Send data
+
+sends data from given data struct, switch on name, send where needed
+
+Ez :
+
+-   send to Y_START
+-   receive from Y_END
+-   idem for X
+
+Hx:
+
+-   send to Y_END
+-   receive from Y_START
+
+Hy:
+
+-   send to X_END
+-   receive from X_START
+
+Keep requests as is, and received neighbour also.
+For each neighbour, you just have to send one data. => send, receive smaller.
+
+### receive data
+
+received data to pointer, switch on name.
+
 ### `hx_loop`
 
 This function first computes a mathematical parameter for the scheme. The main loop does the computation on $[0, nx[ \times [0, ny - 1[$ as the scheme necessitates a value of `ez` present the following column ($y$ direction). It is then possible to compute the $ny - 1$ column only if data has been received from `Y_END`. In that case, it makes one additional loop on $x$ to fill out that column.

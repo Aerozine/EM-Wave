@@ -1,3 +1,4 @@
+#include "main.h"
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,6 +90,9 @@ int main(int argc, char **argv) {
     MPI_Finalize();
 
   free_params(&sim_params, &mpi_params);
+
+  if (mpi_params.use_mpi && mpi_params.rank == 0)
+    DEBUG_PRINT("Finished the computation.\n");
 
   return EXIT_SUCCESS;
 }
