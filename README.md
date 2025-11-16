@@ -1,6 +1,6 @@
 # Propagation of EM waves
 
-This is a project realised for the *High Performance Scientific Computing* class
+This is a project realised for the _High Performance Scientific Computing_ class
 at the University of Liège.
 
 The goal is to simulate, using a finite difference scheme, the propagation of
@@ -13,12 +13,13 @@ At some point, a simulation will be run on a GPU.
 The code can be compiled with the following commands :
 
 ```bash
-BUILD=reference make -j$(nprocs)
+BUILD="<target>" make -j$(nprocs)
 ```
-where BUILD is one of folder target , actually there is reference and stability
-To build stability an environment python with numpy and matplotlib is required
 
-and it can be run with :
+where BUILD is one of folder target. Actually there is `reference`, `stability`, and `mpi`.
+To build stability, an environment python with numpy and matplotlib is required.
+
+It can be run with :
 
 ```bash
 make run

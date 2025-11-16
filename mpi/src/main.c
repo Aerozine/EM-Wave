@@ -1,6 +1,8 @@
+#include "main.h"
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+// #include <string.h>
 #include <string.h>
 #include <time.h>
 
@@ -17,10 +19,12 @@
 #define GET(data, i, j) ((data)->values[(data)->nx * (j) + (i)])
 #define SET(data, i, j, val) ((data)->values[(data)->nx * (j) + (i)] = (val))
 
-void print_perf_data(struct PerformanceData *perf_data) {
+void print_perf_data(struct PerformanceData *perf_data,
+                     struct MpiParams *mpi_params) {
   fprintf(stdout, "Performance : \n");
   fprintf(stdout, "\t- Time : %g\n", perf_data->time);
-  fprintf(stdout, "\t- MUpdates/s : %g\n", perf_data->MUps_per_sec);
+  fprintf(stdout, "\t- MUpdates/s : %g\n",
+          perf_data->MUps_per_sec * mpi_params->num_ranks);
 }
 
 void print_sim_params(struct SimulationParams *sim_params) {
@@ -39,8 +43,10 @@ void print_sim_params(struct SimulationParams *sim_params) {
 }
 
 int main(int argc, char **argv) {
-  if (argc != 2 && argc != 3) {
-    printf("Usage: %s <problem_id> [--use-mpi]\n", argv[0]);
+  if ((argc != 2 && argc != 3) ||
+      (argc == 2 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help") ||
+                     !strcmp(argv[1], "help")))) {
+    printf("Usage: %s <problem_id> [size of square grid, eg 500] \n", argv[0]);
     return EXIT_FAILURE;
   }
 
@@ -51,9 +57,7 @@ int main(int argc, char **argv) {
 
   init_params(&sim_params, &perf_data, &phys_params, &mpi_params);
   sim_params.problem_id = atoi(argv[1]);
-
-  if (argc == 3 && !strcmp(argv[2], "--use-mpi"))
-    mpi_params.use_mpi = true;
+  mpi_params.use_mpi = true;
 
   if (mpi_params.use_mpi) {
     MPI_Init(&argc, &argv);
@@ -69,7 +73,12 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  print_sim_params(&sim_params);
+  if (argc == 3) {
+    sim_params.size_of_space[0] = sim_params.size_of_space[1] = atoi(argv[2]);
+  }
+
+  if (mpi_params.use_mpi && mpi_params.rank == 0)
+    print_sim_params(&sim_params);
 
   if (solve(&sim_params, &phys_params, &perf_data, &mpi_params)) {
     if (mpi_params.use_mpi)
@@ -79,12 +88,16 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  print_perf_data(&perf_data);
+  if (mpi_params.use_mpi && mpi_params.rank == 0)
+    print_perf_data(&perf_data, &mpi_params);
 
   if (mpi_params.use_mpi)
     MPI_Finalize();
 
   free_params(&sim_params, &mpi_params);
+
+  if (mpi_params.use_mpi && mpi_params.rank == 0)
+    DEBUG_PRINT("Finished the computation.\n");
 
   return EXIT_SUCCESS;
 }

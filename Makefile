@@ -2,16 +2,23 @@
 TARGET = hpc_project
 RES_FOLDER?="data/"
 BUILD ?=reference 
-RES_IDX=ez.pvd
+RES_IDX=ez.pvd hx.pvd hy.pvd
 # checking if build has the right values
 ifeq ($(filter $(BUILD),reference stability cache mpi openmp gpu),)
     $(error Invalid build argument BUILD="$(BUILD)". possible values are stability cache mpi openmp gpu )
 endif
 
+build:$(TARGET)
+
 run:$(TARGET)
 	./$(TARGET) 3 2000 2 > threads_2.log
 	./$(TARGET) 3 2000 4 > threads_4.log
 	./$(TARGET) 3 2000 8 > threads_8.log
+
+run_mpi:$(TARGET)
+	mpirun -n 4 $(TARGET) 1  > out.log 2>&1
+# 	mpirun -n 4 $(TARGET) 2 --use-mpi > out.log 2>&1
+# 	mpirun -n 4 $(TARGET) 3 --use-mpi > out.log 2>&1
 
 $(TARGET): clean_all
 	$(MAKE) -C $(BUILD) RES_FOLDER=$(RES_FOLDER) -j$(shell nproc) build
@@ -31,7 +38,7 @@ clean_all:
 	$(RM) $(RES_IDX) $(TARGET)  $(RES_FOLDER)/*
 	make -j$(nproc) -C reference clean
 	make -j$(nproc) -C stability clean
-# 	make -j$(nproc) -C cache clean
 	make -j$(nproc) -C mpi clean
-	make -j$(nproc) -C openmp clean
+# 	make -j$(nproc) -C cache clean
+# 	make -j$(nproc) -C openmp clean
 # 	make -j$(nproc) -C gpu clean

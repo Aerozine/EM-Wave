@@ -13,11 +13,12 @@
 struct data {
   const char *name;
   int nx, ny;
-  double dx, dy, origin_x, origin_y, *values;
+  double dx, dy, origin_x, origin_y;
+  float *values;
 };
 
 int init_data(struct data *data, const char *name, int nx, int ny, double dx,
-              double dy, double origin_x, double origin_y, double val);
+              double dy, double origin_x, double origin_y, float val);
 void free_data(struct data *data);
 int write_data_vtk(struct data *data, int step, int rank);
 int write_manifest_vtk(const char *name, double dt, int nt, int sampling_rate,

@@ -2,12 +2,16 @@
 #include "data.h"
 #include "main.h"
 
+#include <float.h>
 #include <math.h>
 #include <stdlib.h>
-#include <float.h>
 
 int solve(struct SimulationParams *sim_params,
           struct PhysicalParams *phys_params, int problem_id) {
+
+  DEBUG_PRINT("Starting computation on process %d, with :\n\tnx from %d to "
+              "%d\n\tny from %d to %d\n",
+              0, 0, sim_params->nx - 1, 0, sim_params->ny - 1);
 
   struct data ez, hx, hy;
   if (init_data(&ez, "ez", sim_params->nx, sim_params->ny, sim_params->dx,
@@ -26,11 +30,11 @@ int solve(struct SimulationParams *sim_params,
     if (n && (n % (sim_params->nt / 10)) == 0) {
       double time_sofar = GET_TIME() - start;
       double eta = (sim_params->nt - n) * time_sofar / n;
-      #ifndef STABILITY_STUDY
+#ifndef STABILITY_STUDY
       printf("Computing time step %d/%d (ETA: %g seconds)     \r", n,
              sim_params->nt, eta);
       fflush(stdout);
-      #endif
+#endif
     }
 
     // update hx and hy
@@ -63,11 +67,12 @@ int solve(struct SimulationParams *sim_params,
       }
     }
 
-      #ifdef STABILITY_STUDY
-      // +42 is to decentrate from the source
-    // maybe using FLT_DIG ? 
-      printf("%.12f \n",GET(&ez,(sim_params->nx>>1)+42,(sim_params->ny>>1)+42));
-      #endif
+#ifdef STABILITY_STUDY
+    // +42 is to decentrate from the source
+    // maybe using FLT_DIG ?
+    printf("%.12f \n",
+           GET(&ez, (sim_params->nx >> 1) + 42, (sim_params->ny >> 1) + 42));
+#endif
     // impose source
     double t = n * sim_params->dt;
     switch (problem_id) {
@@ -97,13 +102,13 @@ int solve(struct SimulationParams *sim_params,
   // write_manifest_vtk("hy", sim_params->dt, sim_params->nt, sampling_rate, 1);
 
   double time = GET_TIME() - start;
-  #ifndef STABILITY_STUDY
-  
+#ifndef STABILITY_STUDY
+
   printf("\nDone: %g seconds (%g MUpdates/s)\n", time,
          1.e-6 * (double)sim_params->nx * (double)sim_params->ny *
              (double)sim_params->nt / time);
 
-  #endif 
+#endif
   free_data(&ez);
   free_data(&hx);
   free_data(&hy);

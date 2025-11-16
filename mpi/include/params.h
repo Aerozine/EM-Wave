@@ -31,6 +31,8 @@ struct MpiParams {
     int *procs_per_dim, *periods, *coords;
     struct neighbour *neighbours;
     MPI_Comm cart_comm;
+    int *sizes;
+    int *send_sizes;
 };
 
 int init_params(struct SimulationParams *sim_params,

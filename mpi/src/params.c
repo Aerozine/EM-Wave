@@ -40,6 +40,17 @@ int init_params(struct SimulationParams *sim_params,
   mpi_params->periods = NULL;
   mpi_params->coords = NULL;
   mpi_params->neighbours = NULL;
+  mpi_params->sizes = NULL;
+  mpi_params->send_sizes = NULL;
+  mpi_params->sizes = malloc(sizeof(int) * sim_params->ndim);
+  mpi_params->send_sizes = malloc(sizeof(int) * sim_params->ndim);
+  if (!mpi_params->sizes || !mpi_params->send_sizes) {
+    free(sim_params->size_of_space);
+    free(sim_params->steps);
+    free(mpi_params->sizes);
+    free(mpi_params->send_sizes);
+    return EXIT_FAILURE;
+  }
 
   return EXIT_SUCCESS;
 }
@@ -71,24 +82,13 @@ int set_params(struct SimulationParams *sim_params) {
   case 3: // larger size problem, usable for initial scaling tests
     sim_params->steps[0] = sim_params->steps[1] =
         (3.e8 / 2.4e9) / 40.; // wavelength / 40
-    sim_params->size_of_space[0] = sim_params->size_of_space[1] = 4000;
+    sim_params->size_of_space[0] = sim_params->size_of_space[1] = 16000;
     sim_params->steps[sim_params->ndim] =
         0.1 / (3.e8 * sqrt(1. / (sim_params->steps[0] * sim_params->steps[0]) +
                            1. / (sim_params->steps[1] *
                                  sim_params->steps[1]))); // cfl / 2
-    sim_params->size_of_space[sim_params->ndim] = 2500;
-    sim_params->sampling_rate = 1; // don't save results
-    break;
-  case 4: // small size problem
-    sim_params->steps[0] = sim_params->steps[1] =
-        (3.e8 / 2.4e9) / 20.; // wavelength / 20
-    sim_params->size_of_space[0] = sim_params->size_of_space[1] = 500;
-    sim_params->steps[sim_params->ndim] =
-        0.5 / (3.e8 * sqrt(1. / (sim_params->steps[0] * sim_params->steps[0]) +
-                           1. / (sim_params->steps[1] *
-                                 sim_params->steps[1]))); // cfl / 2
-    sim_params->size_of_space[sim_params->ndim] = 5000;
-    sim_params->sampling_rate = 5; // save 1 step out of 5
+    sim_params->size_of_space[sim_params->ndim] = 50;
+    sim_params->sampling_rate = 0;
     break;
   default:
     printf("Error: unknown problem id %d\n", sim_params->problem_id);
@@ -108,4 +108,6 @@ void free_params(struct SimulationParams *sim_params,
   free(mpi_params->periods);
   free(mpi_params->coords);
   free(mpi_params->neighbours);
+  free(mpi_params->sizes);
+  free(mpi_params->send_sizes);
 }
