@@ -59,19 +59,6 @@ void set_params(struct SimulationParams *params, int problem_id) {
 }
 
 int main(int argc, char **argv) {
-#ifndef STABILITY_STUDY
-
-  if (argc != 2) {
-    printf("Usage: %s problem_id\n", argv[0]);
-    return 1;
-  }
-#else
-
-  if (argc != 3) {
-    printf("Usage: %s problem_id dt \n", argv[0]);
-    return 1;
-  }
-#endif
 
   struct SimulationParams sim_params;
   init_params(&sim_params);
@@ -82,6 +69,14 @@ int main(int argc, char **argv) {
 
   int problem_id = atoi(argv[1]);
   set_params(&sim_params, problem_id);
+
+  // Arguments
+  if (argc == 4) {
+    omp_set_num_threads(atoi(argv[3]));
+    sim_params.nx = sim_params.ny = atoi(argv[2]);
+  } else if (argc == 3) {
+    sim_params.nx = sim_params.ny = atoi(argv[2]);
+  }
 
 #ifdef STABILITY_STUDY
 

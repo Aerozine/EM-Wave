@@ -17,6 +17,9 @@
 int solve(struct SimulationParams *sim_params,
           struct PhysicalParams *phys_params, int problem_id) {
 
+#pragma omp parallel
+  printf("Num threads: %d\n", omp_get_num_threads());
+
   struct data ez, hx, hy;
   if (init_data(&ez, "ez", sim_params->nx, sim_params->ny, sim_params->dx,
                 sim_params->dy, 0.) ||

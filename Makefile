@@ -9,9 +9,9 @@ ifeq ($(filter $(BUILD),reference stability cache mpi openmp gpu),)
 endif
 
 run:$(TARGET)
-	OMP_NUM_THREADS=2 ./$(TARGET) 3 > threads_2.log
-	OMP_NUM_THREADS=4 ./$(TARGET) 3 > threads_4.log
-	OMP_NUM_THREADS=8 ./$(TARGET) 3 > threads_8.log
+	./$(TARGET) 3 2000 2 > threads_2.log
+	./$(TARGET) 3 2000 4 > threads_4.log
+	./$(TARGET) 3 2000 8 > threads_8.log
 
 $(TARGET): clean_all
 	$(MAKE) -C $(BUILD) RES_FOLDER=$(RES_FOLDER) -j$(shell nproc) build
