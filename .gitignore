@@ -54,3 +54,7 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+data
+compile_flags.txt
+*.pvd
+hpc_project
