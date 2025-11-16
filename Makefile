@@ -11,7 +11,9 @@ endif
 build:$(TARGET)
 
 run:$(TARGET)
-	./$(TARGET) 1
+	./$(TARGET) 3 2000 2 > threads_2.log
+	./$(TARGET) 3 2000 4 > threads_4.log
+	./$(TARGET) 3 2000 8 > threads_8.log
 
 run_mpi:$(TARGET)
 	mpirun -n 4 $(TARGET) 1  > out.log 2>&1
