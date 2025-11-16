@@ -1,13 +1,13 @@
 #include "data.h"
 
 int init_data(struct data *data, const char *name, int nx, int ny, double dx,
-              double dy, double val) {
+              double dy, float val) {
   data->name = name;
   data->nx = nx;
   data->ny = ny;
   data->dx = dx;
   data->dy = dy;
-  data->values = (double *)malloc(nx * ny * sizeof(double));
+  data->values = (float *)malloc(nx * ny * sizeof(float));
   if (!data->values) {
     printf("Error: Could not allocate data\n");
     return 1;
@@ -34,7 +34,7 @@ int write_data_vtk(struct data *data, int step, int rank) {
   }
 
   uint64_t num_points = data->nx * data->ny;
-  uint64_t num_bytes = num_points * sizeof(double);
+  uint64_t num_bytes = num_points * sizeof(float);
 
   fprintf(fp,
           "<?xml version=\"1.0\"?>\n"
@@ -52,7 +52,7 @@ int write_data_vtk(struct data *data, int step, int rank) {
           "    <Piece Extent=\"0 %d 0 %d 0 %d\">\n"
           "      <PointData Scalars=\"scalar_data\">\n"
           "        <DataArray"
-          " type=\"Float64\""
+          " type=\"Float32\""
           " Name=\"%s\""
           " format=\"appended\""
           " offset=\"0\""
@@ -66,7 +66,7 @@ int write_data_vtk(struct data *data, int step, int rank) {
           data->nx - 1, data->ny - 1, 0, data->name);
 
   fwrite(&num_bytes, sizeof(uint64_t), 1, fp);
-  fwrite(data->values, sizeof(double), num_points, fp);
+  fwrite(data->values, sizeof(float), num_points, fp);
 
   fprintf(fp, "  </AppendedData>\n"
               "</VTKFile>\n");

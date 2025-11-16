@@ -9,7 +9,7 @@ ifeq ($(filter $(BUILD),reference stability cache mpi openmp gpu),)
 endif
 
 run:$(TARGET)
-	./$(TARGET) 1
+	./$(TARGET) 3
 
 $(TARGET): clean_all
 	$(MAKE) -C $(BUILD) RES_FOLDER=$(RES_FOLDER) -j$(shell nproc) build

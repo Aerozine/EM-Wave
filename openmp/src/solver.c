@@ -10,6 +10,7 @@
 #include <omp.h>
 #define GET_TIME() (omp_get_wtime()) // wall time
 #else
+#include <time.h>
 #define GET_TIME() ((double)clock() / CLOCKS_PER_SEC) // cpu time
 #endif
 
@@ -42,17 +43,21 @@ int solve(struct SimulationParams *sim_params,
 
     // update hx and hy
     double chy = sim_params->dt / (sim_params->dy * phys_params->mu);
+
+#pragma omp parallel for collapse(2) schedule(static)
     for (int i = 0; i < sim_params->nx; i++) {
       for (int j = 0; j < sim_params->ny - 1; j++) {
-        double hx_ij =
+        float hx_ij =
             GET(&hx, i, j) - chy * (GET(&ez, i, j + 1) - GET(&ez, i, j));
         SET(&hx, i, j, hx_ij);
       }
     }
     double chx = sim_params->dt / (sim_params->dx * phys_params->mu);
+
+#pragma omp parallel for collapse(2) schedule(static)
     for (int i = 0; i < sim_params->nx - 1; i++) {
       for (int j = 0; j < sim_params->ny; j++) {
-        double hy_ij =
+        float hy_ij =
             GET(&hy, i, j) + chx * (GET(&ez, i + 1, j) - GET(&ez, i, j));
         SET(&hy, i, j, hy_ij);
       }
@@ -61,11 +66,13 @@ int solve(struct SimulationParams *sim_params,
     // update ez
     double cex = sim_params->dt / (sim_params->dx * phys_params->eps),
            cey = sim_params->dt / (sim_params->dy * phys_params->eps);
+
+#pragma omp parallel for collapse(2) schedule(static)
     for (int i = 1; i < sim_params->nx - 1; i++) {
       for (int j = 1; j < sim_params->ny - 1; j++) {
-        double ez_ij = GET(&ez, i, j) +
-                       cex * (GET(&hy, i, j) - GET(&hy, i - 1, j)) -
-                       cey * (GET(&hx, i, j) - GET(&hx, i, j - 1));
+        float ez_ij = GET(&ez, i, j) +
+                      cex * (GET(&hy, i, j) - GET(&hy, i - 1, j)) -
+                      cey * (GET(&hx, i, j) - GET(&hx, i, j - 1));
         SET(&ez, i, j, ez_ij);
       }
     }
@@ -81,6 +88,7 @@ int solve(struct SimulationParams *sim_params,
     switch (problem_id) {
     case 1:
     case 2:
+    case 3:
       // sinusoidal excitation at 2.4 GHz in the middle of the domain
       SET(&ez, sim_params->nx / 2, sim_params->ny / 2,
           sin(2. * M_PI * 2.4e9 * t));

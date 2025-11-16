@@ -58,3 +58,4 @@ data
 compile_flags.txt
 *.pvd
 hpc_project
+*.log
