@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name="OMP strong scalability"
+#SBATCH --job-name="MPI strong scalability"
 #SBATCH --exclusive
 #SBATCH --mem=0
 #SBATCH --time=08:00:00
