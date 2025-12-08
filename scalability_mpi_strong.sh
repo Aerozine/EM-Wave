@@ -17,8 +17,8 @@ for binding in close spread; do
     while [[ $numThreads -le $numCpuCores ]]; do
         export OMP_NUM_THREADS=${numThreads}
 
-        workDir="omp_${binding}_${numThreads}"
-        output="${numThreads}_threads.out"
+        workDir="omp_scalability_strong/omp_${binding}_${numThreads}"
+        output="${numThreads}_threads.log"
 
         mkdir -p ${workDir} && cd ${workDir}
         ${executable} ${args} > ${output}
