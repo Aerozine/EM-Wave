@@ -111,8 +111,9 @@ int solve(struct SimulationParams *sim_params,
   }
 
   // write VTK manifest, linking to individual step data files
-  write_manifest_vtk("ez", sim_params->dt, sim_params->nt,
-                     sim_params->sampling_rate, 1);
+  if (sim_params->sampling_rate)
+    write_manifest_vtk("ez", sim_params->dt, sim_params->nt,
+                       sim_params->sampling_rate, 1);
   // write_manifest_vtk("hx", sim_params->dt, sim_params->nt, sampling_rate, 1);
   // write_manifest_vtk("hy", sim_params->dt, sim_params->nt, sampling_rate, 1);
 

@@ -8,7 +8,7 @@ module load Info0939Tools
 numCpuCores=$SLURM_CPUS_ON_NODE
 startDir=$(pwd)
 executable="/home/ulg/info0939/qbinstok/EM-Wave/hpc_project"
-args="3 5000"
+args="3 20000"
 
 for binding in close spread; do
     export OMP_PROC_BIND=${binding}

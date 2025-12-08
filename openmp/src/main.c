@@ -49,7 +49,7 @@ void set_params(struct SimulationParams *params, int problem_id) {
     params->nx = params->ny = 1000;
     params->dt = 0.5 / (3.e8 * sqrt(1. / (params->dx * params->dx) +
                                     1. / (params->dy * params->dy))); // cfl / 2
-    params->nt = 100;
+    params->nt = 500;
     params->sampling_rate = 0; // don't save results
     break;
   default:
