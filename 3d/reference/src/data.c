@@ -39,7 +39,7 @@ int write_data_vtk(struct data *data, int step, int rank) {
     return 1;
   }
 
-  uint64_t num_points = data->nx * data->ny;
+  uint64_t num_points = data->nx * data->ny * data->nz;
   uint64_t num_bytes = num_points * sizeof(float);
 
   fprintf(fp,

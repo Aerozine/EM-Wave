@@ -51,9 +51,14 @@ int solve(struct SimulationParams *sim_params,
       double eta =
           (sim_params->size_of_space[sim_params->ndim] - n) * time_sofar / n;
 #ifndef STABILITY_STUDY
-      printf("Computing time step %d/%d (ETA: %g seconds)     \r", n,
-             sim_params->size_of_space[sim_params->ndim], eta);
+      // printf("Computing time step %d/%d (ETA: %g seconds)     \r", n,
+      //        sim_params->size_of_space[sim_params->ndim], eta);
       fflush(stdout);
+      printf("\n");
+      int i = 60, j = 60;
+      for (int k = 40; k < 60; k += 5) {
+        printf("  Ez[%d,%d,%d] = %.6e\n", i, j, k, GET(&ez, i, j, k));
+      }
 #endif
     }
 
@@ -62,12 +67,12 @@ int solve(struct SimulationParams *sim_params,
                   (sim_params->steps[2] * phys_params->mu);
     double chx2 = sim_params->steps[sim_params->ndim] /
                   (sim_params->steps[1] * phys_params->mu);
-    for (int k = 0; k < sim_params->size_of_space[2] - 1; k++) {
-      for (int j = 0; j < sim_params->size_of_space[1] - 1; j++) {
-        for (int i = 0; i < sim_params->size_of_space[0]; i++) {
-          double hx_ij = GET(&hx, i, j, k) +
-                         chx1 * (GET(&ey, i, j, k + 1) - GET(&ey, i, j, k)) -
-                         chx2 * (GET(&ez, i, j + 1, k) - GET(&ez, i, j, k));
+    for (int k = 1; k < sim_params->size_of_space[2] - 1; k++) {
+      for (int j = 1; j < sim_params->size_of_space[1] - 1; j++) {
+        for (int i = 1; i < sim_params->size_of_space[0] - 1; i++) {
+          float hx_ij = GET(&hx, i, j, k) +
+                        chx1 * (GET(&ey, i, j, k + 1) - GET(&ey, i, j, k)) -
+                        chx2 * (GET(&ez, i, j + 1, k) - GET(&ez, i, j, k));
           SET(&hx, i, j, k, hx_ij);
         }
       }
@@ -77,12 +82,12 @@ int solve(struct SimulationParams *sim_params,
                   (sim_params->steps[0] * phys_params->mu);
     double chy2 = sim_params->steps[sim_params->ndim] /
                   (phys_params->mu * sim_params->steps[2]);
-    for (int k = 0; k < sim_params->size_of_space[2] - 1; k++) {
-      for (int j = 0; j < sim_params->size_of_space[1]; j++) {
-        for (int i = 0; i < sim_params->size_of_space[0] - 1; i++) {
-          double hy_ij = GET(&hy, i, j, k) +
-                         chy1 * (GET(&ez, i + 1, j, k) - GET(&ez, i, j, k)) -
-                         chy2 * (GET(&ex, i, j, k + 1) - GET(&ex, i, j, k));
+    for (int k = 1; k < sim_params->size_of_space[2] - 1; k++) {
+      for (int j = 1; j < sim_params->size_of_space[1] - 1; j++) {
+        for (int i = 1; i < sim_params->size_of_space[0] - 1; i++) {
+          float hy_ij = GET(&hy, i, j, k) +
+                        chy1 * (GET(&ez, i + 1, j, k) - GET(&ez, i, j, k)) -
+                        chy2 * (GET(&ex, i, j, k + 1) - GET(&ex, i, j, k));
           SET(&hy, i, j, k, hy_ij);
         }
       }
@@ -93,12 +98,12 @@ int solve(struct SimulationParams *sim_params,
     double chz2 = sim_params->steps[sim_params->ndim] /
                   (phys_params->mu * sim_params->steps[0]);
 
-    for (int k = 0; k < sim_params->size_of_space[2]; k++) {
-      for (int j = 0; j < sim_params->size_of_space[1] - 1; j++) {
-        for (int i = 0; i < sim_params->size_of_space[0] - 1; i++) {
-          double hz_ij = GET(&hz, i, j, k) +
-                         chz1 * (GET(&ex, i, j + 1, k) - GET(&ex, i, j, k)) -
-                         chz2 * (GET(&ey, i + 1, j, k) - GET(&ey, i, j, k));
+    for (int k = 1; k < sim_params->size_of_space[2] - 1; k++) {
+      for (int j = 1; j < sim_params->size_of_space[1] - 1; j++) {
+        for (int i = 1; i < sim_params->size_of_space[0] - 1; i++) {
+          float hz_ij = GET(&hz, i, j, k) +
+                        chz1 * (GET(&ex, i, j + 1, k) - GET(&ex, i, j, k)) -
+                        chz2 * (GET(&ey, i + 1, j, k) - GET(&ey, i, j, k));
           SET(&hz, i, j, k, hz_ij);
         }
       }
@@ -108,12 +113,12 @@ int solve(struct SimulationParams *sim_params,
                   (phys_params->eps * sim_params->steps[1]);
     double cex2 = sim_params->steps[sim_params->ndim] /
                   (phys_params->eps * sim_params->steps[2]);
-    for (int k = 1; k < sim_params->size_of_space[2]; k++) {
-      for (int j = 1; j < sim_params->size_of_space[1]; j++) {
-        for (int i = 0; i < sim_params->size_of_space[0]; i++) {
-          double ex_ij = GET(&ex, i, j, k) +
-                         cex1 * (GET(&hz, i, j, k) - GET(&hz, i, j - 1, k)) -
-                         cex2 * (GET(&hy, i, j, k) - GET(&hy, i, j, k - 1));
+    for (int k = 1; k < sim_params->size_of_space[2] - 1; k++) {
+      for (int j = 1; j < sim_params->size_of_space[1] - 1; j++) {
+        for (int i = 1; i < sim_params->size_of_space[0] - 1; i++) {
+          float ex_ij = GET(&ex, i, j, k) +
+                        cex1 * (GET(&hz, i, j, k) - GET(&hz, i, j - 1, k)) -
+                        cex2 * (GET(&hy, i, j, k) - GET(&hy, i, j, k - 1));
           SET(&ex, i, j, k, ex_ij);
         }
       }
@@ -123,12 +128,12 @@ int solve(struct SimulationParams *sim_params,
                   (phys_params->eps * sim_params->steps[2]);
     double cey2 = sim_params->steps[sim_params->ndim] /
                   (phys_params->eps * sim_params->steps[0]);
-    for (int k = 1; k < sim_params->size_of_space[2]; k++) {
-      for (int j = 0; j < sim_params->size_of_space[1]; j++) {
-        for (int i = 1; i < sim_params->size_of_space[0]; i++) {
-          double ey_ij = GET(&ey, i, j, k) +
-                         cey1 * (GET(&hx, i, j, k) - GET(&hx, i, j, k - 1)) -
-                         cey2 * (GET(&hz, i, j, k) - GET(&hz, i - 1, j, k));
+    for (int k = 1; k < sim_params->size_of_space[2] - 1; k++) {
+      for (int j = 1; j < sim_params->size_of_space[1] - 1; j++) {
+        for (int i = 1; i < sim_params->size_of_space[0] - 1; i++) {
+          float ey_ij = GET(&ey, i, j, k) +
+                        cey1 * (GET(&hx, i, j, k) - GET(&hx, i, j, k - 1)) -
+                        cey2 * (GET(&hz, i, j, k) - GET(&hz, i - 1, j, k));
           SET(&ey, i, j, k, ey_ij);
         }
       }
@@ -139,16 +144,38 @@ int solve(struct SimulationParams *sim_params,
                   (sim_params->steps[0] * phys_params->eps),
            cez2 = sim_params->steps[sim_params->ndim] /
                   (sim_params->steps[1] * phys_params->eps);
-    for (int k = 0; k < sim_params->size_of_space[2]; k++) {
-      for (int j = 1; j < sim_params->size_of_space[1]; j++) {
-        for (int i = 1; i < sim_params->size_of_space[0]; i++) {
-          double ez_ij = GET(&ez, i, j, k) +
-                         cez1 * (GET(&hy, i, j, k) - GET(&hy, i - 1, j, k)) -
-                         cez2 * (GET(&hx, i, j, k) - GET(&hx, i, j - 1, k));
+    for (int k = 1; k < sim_params->size_of_space[2] - 1; k++) {
+      for (int j = 1; j < sim_params->size_of_space[1] - 1; j++) {
+        for (int i = 1; i < sim_params->size_of_space[0] - 1; i++) {
+          float ez_ij = GET(&ez, i, j, k) +
+                        cez1 * (GET(&hy, i, j, k) - GET(&hy, i - 1, j, k)) -
+                        cez2 * (GET(&hx, i, j, k) - GET(&hx, i, j - 1, k));
           SET(&ez, i, j, k, ez_ij);
         }
       }
     }
+
+    int nd = sim_params->size_of_space[1];
+    int i = nd / 2 + 1;
+    int j = nd / 2 + 1;
+    int k = nd / 2 + 1;
+    float Ex = GET(&ex, i, j, k);
+    float Ey = GET(&ey, i, j, k);
+    float Ez = GET(&ez, i, j, k);
+    float Hx = GET(&hx, i, j, k);
+    float Hy = GET(&hy, i, j, k);
+    float Hz = GET(&hz, i, j, k);
+    printf("\n");
+    printf("Ex: %f\n", Ex);
+    printf("Ey: %f\n", Ey);
+    printf("Ez: %f\n", Ez);
+    printf("Hx: %f\n", Hx);
+    printf("Hy: %f\n", Hy);
+    printf("Hz: %f\n", Hz);
+
+    char buf[10];
+    printf("Continue ? ");
+    // scanf("%s", buf);
 
 #ifdef STABILITY_STUDY
     // +42 is to decentrate from the source
@@ -161,11 +188,31 @@ int solve(struct SimulationParams *sim_params,
     switch (sim_params->problem_id) {
     case 1:
     case 2:
+    case 3:
+      int iez = sim_params->size_of_space[0] / 2,
+          jez = sim_params->size_of_space[1] / 2,
+          kez = sim_params->size_of_space[2] / 2;
+      float pre_fieldz = GET(&ez, iez, jez, kez);
+      float pre_fieldy = GET(&ey, iez, jez, kez);
+      float pre_fieldx = GET(&ex, iez, jez, kez);
       // sinusoidal excitation at 2.4 GHz in the middle of the domain
-      SET(&ez, sim_params->size_of_space[0] / 2,
-          sim_params->size_of_space[1] / 2, sim_params->size_of_space[2] / 2,
-          sin(2. * M_PI * 2.4e9 * t));
+      SET(&ez, iez, jez, kez, sin(2. * M_PI * 2.4e9 * t) + pre_fieldz);
+      SET(&ey, iez, jez, kez, sin(2. * M_PI * 2.4e9 * t) + pre_fieldy);
+      SET(&ex, iez, jez, kez, sin(2. * M_PI * 2.4e9 * t) + pre_fieldx);
       break;
+    // case 3:
+    //   int i = sim_params->size_of_space[0] / 2;
+    //   int j = sim_params->size_of_space[1] / 2;
+    //   int k = sim_params->size_of_space[2] / 2;
+    //   float addi = exp(-pow(t - 10 * sim_params->steps[sim_params->ndim], 2)
+    //   /
+    //                    (4 * sim_params->steps[sim_params->ndim] *
+    //                     sim_params->steps[sim_params->ndim])) *
+    //                sin(2.0 * M_PI * 2.4e9 * t);
+    //   float pre_fieldx = GET(&ex, i, j, k);
+    //   // float pre_fieldx = 0.;
+    //   SET(&ey, i, j, k, addi + pre_fieldx);
+    //   break;
     default:
       printf("Error: unknown source\n");
       break;
@@ -176,8 +223,9 @@ int solve(struct SimulationParams *sim_params,
       write_data_vtk(&ex, n, 0);
       write_data_vtk(&ey, n, 0);
       write_data_vtk(&ez, n, 0);
-      // write_data_vtk(&hx, n, 0);
-      // write_data_vtk(&hy, n, 0);
+      write_data_vtk(&hx, n, 0);
+      write_data_vtk(&hy, n, 0);
+      write_data_vtk(&hz, n, 0);
     }
   }
 
@@ -191,21 +239,29 @@ int solve(struct SimulationParams *sim_params,
   write_manifest_vtk("ez", sim_params->steps[sim_params->ndim],
                      sim_params->size_of_space[sim_params->ndim],
                      sim_params->sampling_rate, 1);
+  write_manifest_vtk("hx", sim_params->steps[sim_params->ndim],
+                     sim_params->size_of_space[sim_params->ndim],
+                     sim_params->sampling_rate, 1);
+  write_manifest_vtk("hy", sim_params->steps[sim_params->ndim],
+                     sim_params->size_of_space[sim_params->ndim],
+                     sim_params->sampling_rate, 1);
+  write_manifest_vtk("hz", sim_params->steps[sim_params->ndim],
+                     sim_params->size_of_space[sim_params->ndim],
+                     sim_params->sampling_rate, 1);
   // write_manifest_vtk("hx", sim_params->steps[sim_params->ndim],
   // sim_params->size_of_space[sim_params->ndim], sampling_rate, 1);
   // write_manifest_vtk("hy", sim_params->steps[sim_params->ndim],
   // sim_params->size_of_space[sim_params->ndim], sampling_rate, 1);
 
   double time = GET_TIME() - start;
-#ifndef STABILITY_STUDY
 
-  printf("\nDone: %g seconds (%g MUpdates/s)\n", time,
-         1.e-6 * (double)sim_params->size_of_space[0] *
-             (double)sim_params->size_of_space[1] *
-             (double)sim_params->size_of_space[2] *
-             (double)sim_params->size_of_space[sim_params->ndim] / time);
+  perf_data->time = time;
+  perf_data->MUps_per_sec =
+      1.e-6 * (double)sim_params->size_of_space[0] *
+      (double)sim_params->size_of_space[1] *
+      (double)sim_params->size_of_space[2] *
+      (double)sim_params->size_of_space[sim_params->ndim] / time;
 
-#endif
   free_data(&ex);
   free_data(&ey);
   free_data(&ez);

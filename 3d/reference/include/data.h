@@ -8,9 +8,9 @@
 #include <stdint.h>
 
 #define GET(data, i, j, k)                                                     \
-  ((data)->values[((data)->nx * (data)->ny) * k + (data)->nx * (j) + (i)])
+  ((data)->values[((data)->nx * (data)->ny) * (k) + (data)->nx * (j) + (i)])
 #define SET(data, i, j, k, val)                                                \
-  ((data)->values[((data)->nx * (data)->ny) * k + (data)->nx * (j) + (i)] =    \
+  ((data)->values[((data)->nx * (data)->ny) * (k) + (data)->nx * (j) + (i)] =    \
        (val))
 
 
