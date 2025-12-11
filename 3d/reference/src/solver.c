@@ -51,14 +51,14 @@ int solve(struct SimulationParams *sim_params,
       double eta =
           (sim_params->size_of_space[sim_params->ndim] - n) * time_sofar / n;
 #ifndef STABILITY_STUDY
-      // printf("Computing time step %d/%d (ETA: %g seconds)     \r", n,
-      //        sim_params->size_of_space[sim_params->ndim], eta);
+      printf("Computing time step %d/%d (ETA: %g seconds)     \r", n,
+             sim_params->size_of_space[sim_params->ndim], eta);
       fflush(stdout);
-      printf("\n");
-      int i = 60, j = 60;
-      for (int k = 40; k < 60; k += 5) {
-        printf("  Ez[%d,%d,%d] = %.6e\n", i, j, k, GET(&ez, i, j, k));
-      }
+      // printf("\n");
+      // int i = 60, j = 60;
+      // for (int k = 40; k < 60; k += 5) {
+      //   printf("  Ez[%d,%d,%d] = %.6e\n", i, j, k, GET(&ez, i, j, k));
+      // }
 #endif
     }
 
@@ -154,28 +154,6 @@ int solve(struct SimulationParams *sim_params,
         }
       }
     }
-
-    int nd = sim_params->size_of_space[1];
-    int i = nd / 2 + 1;
-    int j = nd / 2 + 1;
-    int k = nd / 2 + 1;
-    float Ex = GET(&ex, i, j, k);
-    float Ey = GET(&ey, i, j, k);
-    float Ez = GET(&ez, i, j, k);
-    float Hx = GET(&hx, i, j, k);
-    float Hy = GET(&hy, i, j, k);
-    float Hz = GET(&hz, i, j, k);
-    printf("\n");
-    printf("Ex: %f\n", Ex);
-    printf("Ey: %f\n", Ey);
-    printf("Ez: %f\n", Ez);
-    printf("Hx: %f\n", Hx);
-    printf("Hy: %f\n", Hy);
-    printf("Hz: %f\n", Hz);
-
-    char buf[10];
-    printf("Continue ? ");
-    // scanf("%s", buf);
 
 #ifdef STABILITY_STUDY
     // +42 is to decentrate from the source

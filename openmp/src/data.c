@@ -12,8 +12,12 @@ int init_data(struct data *data, const char *name, int nx, int ny, double dx,
     printf("Error: Could not allocate data\n");
     return 1;
   }
-  for (int i = 0; i < nx * ny; i++)
-    data->values[i] = val;
+#pragma omp parallel for schedule(static)
+  for (int j = 0; j < ny; j++) {
+#pragma simd
+    for (int i = 0; i < nx; i++)
+      SET(data, i, j, val);
+  }
   return 0;
 }
 

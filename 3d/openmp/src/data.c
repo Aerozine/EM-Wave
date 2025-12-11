@@ -1,15 +1,17 @@
 #include "data.h"
+#include "params.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 int init_data(struct data *data, const char *name, int nx, int ny, int nz,
-              double dx, double dy, double dz, float val) {
+              float dx, float dy, float dz, float val) {
   data->name = name;
   data->nx = nx;
   data->ny = ny;
   data->nz = nz;
+  data->nxny = nx * ny;
   data->dx = dx;
   data->dy = dy;
   data->dz = dz;
@@ -18,8 +20,17 @@ int init_data(struct data *data, const char *name, int nx, int ny, int nz,
     printf("Error: Could not allocate data\n");
     return 1;
   }
-  for (int i = 0; i < nx * ny * nz; i++)
-    data->values[i] = val;
+
+// #pragma omp parallel for
+//   for (int i = 0; i < nx * ny * nz; i++)
+//     data->values[i] = val;
+#pragma omp parallel for collapse(3) schedule(static)
+  for (int k = 0; k < nz; k++) {
+    for (int j = 0; j < ny; j++) {
+      for (int i = 0; i < nx; i++)
+        SET(data, i, j, k, val);
+    }
+  }
   return 0;
 }
 
@@ -39,7 +50,7 @@ int write_data_vtk(struct data *data, int step, int rank) {
     return 1;
   }
 
-  uint64_t num_points = data->nx * data->ny;
+  uint64_t num_points = data->nx * data->ny * data->nz;
   uint64_t num_bytes = num_points * sizeof(float);
 
   fprintf(fp,

@@ -45,12 +45,12 @@ void print_sim_params(struct SimulationParams *sim_params) {
 }
 
 int main(int argc, char **argv) {
-  if ((argc != 2 && argc != 3) ||
-      (argc == 2 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help") ||
-                     !strcmp(argv[1], "help")))) {
-    printf("Usage: %s <problem_id> [size of cube grid, eg 500] \n", argv[0]);
-    return EXIT_FAILURE;
-  }
+  // if ((argc != 2 && argc != 3) ||
+  //     (argc == 2 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help") ||
+  //                    !strcmp(argv[1], "help")))) {
+  //   printf("Usage: %s <problem_id> [size of cube grid, eg 500] \n", argv[0]);
+  //   return EXIT_FAILURE;
+  // }
 
   struct SimulationParams sim_params;
   struct PerformanceData perf_data;
@@ -65,6 +65,15 @@ int main(int argc, char **argv) {
   }
 
   if (argc == 3) {
+    for (int i = 0; i < sim_params.ndim; i++)
+      sim_params.size_of_space[i] = atoi(argv[2]);
+  }
+
+  if (argc == 4) {
+    omp_set_num_threads(atoi(argv[3]));
+    for (int i = 0; i < sim_params.ndim; i++)
+      sim_params.size_of_space[i] = atoi(argv[2]);
+  } else if (argc == 3) {
     for (int i = 0; i < sim_params.ndim; i++)
       sim_params.size_of_space[i] = atoi(argv[2]);
   }

@@ -46,8 +46,9 @@ int set_params(struct SimulationParams *sim_params) {
     // TODO
     sim_params->steps[sim_params->ndim] =
         0.5 / (3.e8 * sqrt(1. / (sim_params->steps[0] * sim_params->steps[0]) +
-                           1. / (sim_params->steps[1] *
-                                 sim_params->steps[1]))); // cfl / 2
+                           1. / (sim_params->steps[1] * sim_params->steps[1]) +
+                           1. / (sim_params->steps[2] *
+                                 sim_params->steps[2]))); // cfl / 2
     sim_params->size_of_space[sim_params->ndim] = 500;
     sim_params->sampling_rate = 5; // save 1 step out of 5
     break;
@@ -58,21 +59,23 @@ int set_params(struct SimulationParams *sim_params) {
     }
     sim_params->steps[sim_params->ndim] =
         0.5 / (3.e8 * sqrt(1. / (sim_params->steps[0] * sim_params->steps[0]) +
-                           1. / (sim_params->steps[1] *
-                                 sim_params->steps[1]))); // cfl / 2
+                           1. / (sim_params->steps[1] * sim_params->steps[1]) +
+                           1. / (sim_params->steps[2] *
+                                 sim_params->steps[2]))); // cfl / 2
     sim_params->size_of_space[sim_params->ndim] = 500;
     sim_params->sampling_rate = 0; // don't save results
     break;
   case 3: // larger size problem, usable for initial scaling tests
     for (int i = 0; i < sim_params->ndim; i++) {
-      sim_params->size_of_space[i] = 16000;
+      sim_params->size_of_space[i] = 100;
       sim_params->steps[i] = (3.e8 / 2.4e9) / 40.;
     }
     sim_params->steps[sim_params->ndim] =
-        0.1 / (3.e8 * sqrt(1. / (sim_params->steps[0] * sim_params->steps[0]) +
-                           1. / (sim_params->steps[1] *
-                                 sim_params->steps[1]))); // cfl / 2
-    sim_params->size_of_space[sim_params->ndim] = 500;
+        0.5 / (3.e8 * sqrt(1. / (sim_params->steps[0] * sim_params->steps[0]) +
+                           1. / (sim_params->steps[1] * sim_params->steps[1]) +
+                           1. / (sim_params->steps[2] *
+                                 sim_params->steps[2]))); // cfl / 2
+    sim_params->size_of_space[sim_params->ndim] = 250;
     sim_params->sampling_rate = 0;
     break;
   default:

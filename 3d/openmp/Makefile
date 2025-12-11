@@ -2,12 +2,13 @@
 INC := include
 TARGET?=hpc_project
 CFLAGS += -O3 -ffast-math -march=native -funroll-loops -ftree-vectorize -fopenmp
+# CFLAGS += -O3 -fopenmp -g
 SRC_DIR=src
 BLD_DIR=build
 build : $(TARGET)
 SRC     := $(wildcard $(SRC_DIR)/*.c)
 OBJS    := $(patsubst $(SRC_DIR)/%.c, $(BLD_DIR)/%.o, $(SRC))
-LDFLAGS= -lm -lmpi -fopenmp
+LDFLAGS= -lm -fopenmp
 
 $(BLD_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(BLD_DIR)
