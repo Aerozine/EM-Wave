@@ -18,7 +18,7 @@ $(BLD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CLFAGS) -I $(INC) -DDEBUG -c $< -o $@
 
 $(TARGET):$(OBJS)
-	$(CC) $^ -o ../$(TARGET) $(LDFLAGS)
+	$(CC) $^ -o ../../../$(TARGET) $(LDFLAGS)
 
 clean: 
 	$(RM) $(BLD_DIR)/*.o

@@ -51,11 +51,10 @@ int solve(struct SimulationParams *sim_params,
 #endif
     }
 
-    // update hx and hy
-
-#pragma omp for collapse(2) schedule(static)
+    // H loop
+#pragma omp for schedule(static)
     for (int i = 0; i < sim_params->nx; i++) {
-      // #pragma omp simd
+#pragma omp simd
       for (int j = 0; j < sim_params->ny - 1; j++) {
         float hx_ij =
             GET(&hx, i, j) - chy * (GET(&ez, i, j + 1) - GET(&ez, i, j));
@@ -66,19 +65,10 @@ int solve(struct SimulationParams *sim_params,
       }
     }
 
-    // #pragma omp parallel for collapse(2) schedule(static)
-    //     for (int i = 0; i < sim_params->nx - 1; i++) {
-    //       for (int j = 0; j < sim_params->ny; j++) {
-    //         float hy_ij =
-    //             GET(&hy, i, j) + chx * (GET(&ez, i + 1, j) - GET(&ez, i, j));
-    //         SET(&hy, i, j, hy_ij);
-    //       }
-    //     }
-
-    // update ez
-#pragma omp for collapse(2) schedule(static)
+    // E loop
+#pragma omp for schedule(static)
     for (int i = 1; i < sim_params->nx - 1; i++) {
-      // #pragma omp simd
+#pragma omp simd
       for (int j = 1; j < sim_params->ny - 1; j++) {
         float ez_ij = GET(&ez, i, j) +
                       cex * (GET(&hy, i, j) - GET(&hy, i - 1, j)) -

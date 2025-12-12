@@ -75,7 +75,7 @@ int set_params(struct SimulationParams *sim_params) {
                            1. / (sim_params->steps[1] * sim_params->steps[1]) +
                            1. / (sim_params->steps[2] *
                                  sim_params->steps[2]))); // cfl / 2
-    sim_params->size_of_space[sim_params->ndim] = 250;
+    sim_params->size_of_space[sim_params->ndim] = 500;
     sim_params->sampling_rate = 0;
     break;
   default:

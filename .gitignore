@@ -61,4 +61,7 @@ build/
 hpc_project
 compile_flags.txt
 *.log
+*.avi
+*.mp4
+*.pvsm
 
