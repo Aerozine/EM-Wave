@@ -17,14 +17,10 @@ endif
 build:$(TARGET)
 
 run:$(TARGET)
-	./$(TARGET) 3 2000 2 > threads_2.log
-	./$(TARGET) 3 2000 4 > threads_4.log
-	./$(TARGET) 3 2000 8 > threads_8.log
+	./hpc_project 1
 
 run_mpi:$(TARGET)
 	mpirun -n 4 $(TARGET) 1  > out.log 2>&1
-# 	mpirun -n 4 $(TARGET) 2 --use-mpi > out.log 2>&1
-# 	mpirun -n 4 $(TARGET) 3 --use-mpi > out.log 2>&1
 
 $(TARGET): clean_all
 	$(MAKE) -C $(SUB_FOLDER)/$(BUILD) RES_FOLDER=$(RES_FOLDER) -j$(shell nproc) build
@@ -45,6 +41,4 @@ clean_all:
 	make -j$(nproc) -C $(SUB_FOLDER)/reference clean
 	if [[ "$(DIM3)" == "FALSE" ]]; then make -j$(nproc) -C $(SUB_FOLDER)/stability clean; fi
 	make -j$(nproc) -C $(SUB_FOLDER)/mpi clean
-# 	make -j$(nproc) -C cache clean
 	make -j$(nproc) -C $(SUB_FOLDER)/openmp clean
-# 	make -j$(nproc) -C gpu clean
