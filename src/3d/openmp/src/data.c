@@ -21,9 +21,6 @@ int init_data(struct data *data, const char *name, int nx, int ny, int nz,
     return 1;
   }
 
-// #pragma omp parallel for
-//   for (int i = 0; i < nx * ny * nz; i++)
-//     data->values[i] = val;
 #pragma omp parallel for collapse(3) schedule(static)
   for (int k = 0; k < nz; k++) {
     for (int j = 0; j < ny; j++) {

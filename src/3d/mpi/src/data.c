@@ -4,21 +4,25 @@
 #include <stdlib.h>
 #include <string.h>
 
-int init_data(struct data *data, const char *name, int nx, int ny, double dx,
-              double dy, double origin_x, double origin_y, float val) {
+int init_data(struct data *data, const char *name, int nx, int ny, int nz,
+              float dx, float dy, float dz, float origin_x, float origin_y,
+              float origin_z, float val) {
   data->name = name;
   data->nx = nx;
   data->ny = ny;
+  data->nz = nz;
   data->dx = dx;
   data->dy = dy;
+  data->dz = dz;
   data->origin_x = origin_x;
   data->origin_y = origin_y;
-  data->values = (float *)malloc(nx * ny * sizeof(float));
+  data->origin_z = origin_z;
+  data->values = (float *)malloc(nx * ny * nz * sizeof(float));
   if (!data->values) {
     printf("Error: Could not allocate data\n");
     return 1;
   }
-  for (int i = 0; i < nx * ny; i++)
+  for (int i = 0; i < nx * ny * nz; i++)
     data->values[i] = val;
   return 0;
 }
@@ -68,8 +72,9 @@ int write_data_vtk(struct data *data, int step, int rank) {
           "    </Piece>\n"
           "  </ImageData>\n"
           "  <AppendedData encoding=\"raw\">\n_",
-          data->nx - 1, data->ny - 1, 0, data->dx, data->dy, 0., data->origin_x,
-          data->origin_y, 0., data->nx - 1, data->ny - 1, 0, data->name);
+          data->nx - 1, data->ny - 1, data->nz - 1, data->dx, data->dy,
+          data->dz, data->origin_x, data->origin_y, data->origin_z,
+          data->nx - 1, data->ny - 1, data->nz - 1, data->name);
 
   fwrite(&num_bytes, sizeof(uint64_t), 1, fp);
   fwrite(data->values, sizeof(float), num_points, fp);

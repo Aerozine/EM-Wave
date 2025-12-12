@@ -16,8 +16,11 @@
 #define GET_TIME() ((double)clock() / CLOCKS_PER_SEC) // cpu time
 #endif
 
-#define GET(data, i, j) ((data)->values[(data)->nx * (j) + (i)])
-#define SET(data, i, j, val) ((data)->values[(data)->nx * (j) + (i)] = (val))
+#define GET(data, i, j, k)                                                     \
+  ((data)->values[(data->nx * data->ny) * k + (data)->nx * (j) + (i)])
+#define SET(data, i, j, k, val)                                                \
+  ((data)->values[((data)->nx * (data)->ny) * k + (data)->nx * (j) + (i)] =    \
+       (val))
 
 void print_perf_data(struct PerformanceData *perf_data,
                      struct MpiParams *mpi_params) {
@@ -29,12 +32,14 @@ void print_perf_data(struct PerformanceData *perf_data,
 
 void print_sim_params(struct SimulationParams *sim_params) {
   printf("Solving problem %d:\n", sim_params->problem_id);
-  printf(" - space %gm x %gm (dx=%g, dy=%g; "
-         "nx=%d, ny=%d)\n",
+  printf(" - space %gm x %gm x %gm (dx=%g, dy=%g, dz=%g; "
+         "nx=%d, ny=%d, nz=%d)\n",
          sim_params->steps[0] * sim_params->size_of_space[0],
          sim_params->steps[1] * sim_params->size_of_space[1],
-         sim_params->steps[0], sim_params->steps[1],
-         sim_params->size_of_space[0], sim_params->size_of_space[1]);
+         sim_params->steps[2] * sim_params->size_of_space[2],
+         sim_params->steps[0], sim_params->steps[1], sim_params->steps[2],
+         sim_params->size_of_space[0], sim_params->size_of_space[1],
+         sim_params->size_of_space[2]);
   printf(" - time %gs (dt=%g, nt=%d)\n",
          sim_params->steps[sim_params->ndim] *
              sim_params->size_of_space[sim_params->ndim],
@@ -43,13 +48,6 @@ void print_sim_params(struct SimulationParams *sim_params) {
 }
 
 int main(int argc, char **argv) {
-  if ((argc != 2 && argc != 3) ||
-      (argc == 2 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help") ||
-                     !strcmp(argv[1], "help")))) {
-    printf("Usage: %s <problem_id> [size of square grid, eg 500] \n", argv[0]);
-    return EXIT_FAILURE;
-  }
-
   struct SimulationParams sim_params;
   struct PerformanceData perf_data;
   struct PhysicalParams phys_params;
@@ -74,7 +72,8 @@ int main(int argc, char **argv) {
   }
 
   if (argc == 3) {
-    sim_params.size_of_space[0] = sim_params.size_of_space[1] = atoi(argv[2]);
+    for (int i = 0; i < sim_params.ndim; i++)
+      sim_params.size_of_space[i] = atoi(argv[2]);
   }
 
   if (mpi_params.use_mpi && mpi_params.rank == 0)

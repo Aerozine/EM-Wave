@@ -1,5 +1,4 @@
 #include "main.h"
-#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 // #include <string.h>
@@ -31,12 +30,13 @@ void print_perf_data(struct PerformanceData *perf_data) {
 void print_sim_params(struct SimulationParams *sim_params) {
   printf("Solving problem %d:\n", sim_params->problem_id);
   printf(" - space %gm x %gm x %gm (dx=%g, dy=%g, dz=%g; "
-         "nx=%d, ny=%d)\n",
+         "nx=%d, ny=%d, nz=%d)\n",
          sim_params->steps[0] * sim_params->size_of_space[0],
          sim_params->steps[1] * sim_params->size_of_space[1],
          sim_params->steps[2] * sim_params->size_of_space[2],
          sim_params->steps[0], sim_params->steps[1], sim_params->steps[2],
-         sim_params->size_of_space[0], sim_params->size_of_space[1]);
+         sim_params->size_of_space[0], sim_params->size_of_space[1],
+         sim_params->size_of_space[2]);
   printf(" - time %gs (dt=%g, nt=%d)\n",
          sim_params->steps[sim_params->ndim] *
              sim_params->size_of_space[sim_params->ndim],
@@ -45,13 +45,6 @@ void print_sim_params(struct SimulationParams *sim_params) {
 }
 
 int main(int argc, char **argv) {
-  // if ((argc != 2 && argc != 3) ||
-  //     (argc == 2 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help") ||
-  //                    !strcmp(argv[1], "help")))) {
-  //   printf("Usage: %s <problem_id> [size of cube grid, eg 500] \n", argv[0]);
-  //   return EXIT_FAILURE;
-  // }
-
   struct SimulationParams sim_params;
   struct PerformanceData perf_data;
   struct PhysicalParams phys_params;
@@ -62,11 +55,6 @@ int main(int argc, char **argv) {
   if (set_params(&sim_params)) {
     free_params(&sim_params);
     return EXIT_FAILURE;
-  }
-
-  if (argc == 3) {
-    for (int i = 0; i < sim_params.ndim; i++)
-      sim_params.size_of_space[i] = atoi(argv[2]);
   }
 
   if (argc == 4) {

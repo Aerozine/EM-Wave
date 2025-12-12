@@ -5,7 +5,6 @@
 
 #include "params.h"
 
-// #define GET_TIME() ((double)clock() / CLOCKS_PER_SEC) // cpu time
 #if defined(_OPENMP)
 #include <omp.h>
 #define GET_TIME() (omp_get_wtime()) // wall time
