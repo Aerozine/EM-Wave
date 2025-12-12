@@ -176,9 +176,9 @@ int solve(struct SimulationParams *sim_params,
           write_data_vtk(&ex, n, 0);
           write_data_vtk(&ey, n, 0);
           write_data_vtk(&ez, n, 0);
-          write_data_vtk(&hx, n, 0);
-          write_data_vtk(&hy, n, 0);
-          write_data_vtk(&hz, n, 0);
+          // write_data_vtk(&hx, n, 0);
+          // write_data_vtk(&hy, n, 0);
+          // write_data_vtk(&hz, n, 0);
         }
       }
     }
@@ -195,15 +195,15 @@ int solve(struct SimulationParams *sim_params,
     write_manifest_vtk("ez", sim_params->steps[sim_params->ndim],
                        sim_params->size_of_space[sim_params->ndim],
                        sim_params->sampling_rate, 1);
-    write_manifest_vtk("hx", sim_params->steps[sim_params->ndim],
-                       sim_params->size_of_space[sim_params->ndim],
-                       sim_params->sampling_rate, 1);
-    write_manifest_vtk("hy", sim_params->steps[sim_params->ndim],
-                       sim_params->size_of_space[sim_params->ndim],
-                       sim_params->sampling_rate, 1);
-    write_manifest_vtk("hz", sim_params->steps[sim_params->ndim],
-                       sim_params->size_of_space[sim_params->ndim],
-                       sim_params->sampling_rate, 1);
+    // write_manifest_vtk("hx", sim_params->steps[sim_params->ndim],
+    //                    sim_params->size_of_space[sim_params->ndim],
+    //                    sim_params->sampling_rate, 1);
+    // write_manifest_vtk("hy", sim_params->steps[sim_params->ndim],
+    //                    sim_params->size_of_space[sim_params->ndim],
+    //                    sim_params->sampling_rate, 1);
+    // write_manifest_vtk("hz", sim_params->steps[sim_params->ndim],
+    //                    sim_params->size_of_space[sim_params->ndim],
+    //                    sim_params->sampling_rate, 1);
   }
 
   double time = GET_TIME() - start;
