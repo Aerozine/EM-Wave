@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name="MPI weak scalability"
+#SBATCH --job-name="OMP weak scalability"
 #SBATCH --exclusive
 #SBATCH --mem=0
 #SBATCH --time=02:00:00
@@ -15,7 +15,7 @@ for binding in close spread; do
     export OMP_PROC_BIND=${binding}
     
     numThreads=1
-    grid_size=1500
+    grid_size=2000
     while [[ $numThreads -le $numCpuCores ]]; do
         export OMP_NUM_THREADS=${numThreads}
 
