@@ -53,9 +53,9 @@ int solve(struct SimulationParams *sim_params,
 
     // H loop
 #pragma omp for schedule(static)
-    for (int i = 0; i < sim_params->nx; i++) {
+    for (int j = 1; j < sim_params->ny - 1; j++) {
 #pragma omp simd
-      for (int j = 0; j < sim_params->ny - 1; j++) {
+      for (int i = 1; i < sim_params->nx - 1; i++) {
         float hx_ij =
             GET(&hx, i, j) - chy * (GET(&ez, i, j + 1) - GET(&ez, i, j));
         float hy_ij =
@@ -67,9 +67,9 @@ int solve(struct SimulationParams *sim_params,
 
     // E loop
 #pragma omp for schedule(static)
-    for (int i = 1; i < sim_params->nx - 1; i++) {
+    for (int j = 1; j < sim_params->ny - 1; j++) {
 #pragma omp simd
-      for (int j = 1; j < sim_params->ny - 1; j++) {
+      for (int i = 1; i < sim_params->nx - 1; i++) {
         float ez_ij = GET(&ez, i, j) +
                       cex * (GET(&hy, i, j) - GET(&hy, i - 1, j)) -
                       cey * (GET(&hx, i, j) - GET(&hx, i, j - 1));

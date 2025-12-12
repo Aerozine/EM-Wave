@@ -89,7 +89,7 @@ int solve(struct SimulationParams *sim_params,
     }
 
     // Magnetic field loop
-#pragma omp for collapse(2) schedule(static)
+#pragma omp for schedule(static)
     for (int k = 1; k < sim_params->size_of_space[2] - 1; k++) {
       for (int j = 1; j < sim_params->size_of_space[1] - 1; j++) {
 #pragma omp simd
@@ -97,12 +97,10 @@ int solve(struct SimulationParams *sim_params,
           float hx_ij = GET(&hx, i, j, k) +
                         chx1 * (GET(&ey, i, j, k + 1) - GET(&ey, i, j, k)) -
                         chx2 * (GET(&ez, i, j + 1, k) - GET(&ez, i, j, k));
-
           SET(&hx, i, j, k, hx_ij);
           float hy_ij = GET(&hy, i, j, k) +
                         chy1 * (GET(&ez, i + 1, j, k) - GET(&ez, i, j, k)) -
                         chy2 * (GET(&ex, i, j, k + 1) - GET(&ex, i, j, k));
-
           SET(&hy, i, j, k, hy_ij);
           float hz_ij = GET(&hz, i, j, k) +
                         chz1 * (GET(&ex, i, j + 1, k) - GET(&ex, i, j, k)) -
