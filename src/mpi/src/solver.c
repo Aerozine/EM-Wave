@@ -149,50 +149,40 @@ void free_all_solve_pointers(int nb_neighbours, struct area *proc_area,
   free(origins);
 }
 
-inline void hx_loop(struct data *hx, struct data *ez,
-                    struct SimulationParams *sim_params,
-                    struct PhysicalParams *phys_params,
-                    struct MpiParams *mpi_params, float **received_data,
-                    bool *received_neighbour, MPI_Request *requests) {
-  float chy = sim_params->steps[sim_params->ndim] /
+inline void h_loop(struct data *hx, struct data *hy, struct data *ez,
+                   struct SimulationParams *sim_params,
+                   struct PhysicalParams *phys_params,
+                   struct MpiParams *mpi_params, float **received_data,
+                   bool *received_neighbour, MPI_Request *requests) {
+  // Main loop
+  float chx = sim_params->steps[sim_params->ndim] /
               (sim_params->steps[1] * phys_params->mu);
+  float chy = sim_params->steps[sim_params->ndim] /
+              (sim_params->steps[0] * phys_params->mu);
   for (int j = 0; j < mpi_params->sizes[1] - 1; j++) {
     for (int i = 0; i < mpi_params->sizes[0]; i++) {
-      float hx_ij = GET(hx, i, j) - chy * (GET(ez, i, j + 1) - GET(ez, i, j));
+      float hx_ij = GET(hx, i, j) - chx * (GET(ez, i, j + 1) - GET(ez, i, j));
+      float hy_ij = GET(hy, i, j) + chy * (GET(ez, i + 1, j) - GET(ez, i, j));
       SET(hx, i, j, hx_ij);
-    }
-  }
-
-  MPI_Wait(&(requests[Y_END]), MPI_STATUS_IGNORE);
-  if (received_neighbour[Y_END]) {
-    for (int i = 0; i < mpi_params->sizes[0]; i++) {
-      float hx_ij = GET(hx, i, mpi_params->sizes[1] - 1) -
-                    chy * (received_data[Y_END][i] -
-                           GET(ez, i, mpi_params->sizes[1] - 1));
-      SET(hx, i, mpi_params->sizes[1] - 1, hx_ij);
-    }
-  } // Don't update if no neighbours.
-}
-
-inline void hy_loop(struct data *hy, struct data *ez,
-                    struct SimulationParams *sim_params,
-                    struct PhysicalParams *phys_params,
-                    struct MpiParams *mpi_params, float **received_data,
-                    bool *received_neighbour, MPI_Request *requests) {
-  float chx = sim_params->steps[sim_params->ndim] /
-              (sim_params->steps[0] * phys_params->mu);
-  for (int j = 0; j < mpi_params->sizes[1]; j++) {
-    for (int i = 0; i < mpi_params->sizes[0] - 1; i++) {
-      float hy_ij = GET(hy, i, j) + chx * (GET(ez, i + 1, j) - GET(ez, i, j));
       SET(hy, i, j, hy_ij);
     }
   }
 
+  // Neighbours updating
+  MPI_Wait(&(requests[Y_END]), MPI_STATUS_IGNORE);
+  if (received_neighbour[Y_END]) {
+    for (int i = 0; i < mpi_params->sizes[0]; i++) {
+      float hx_ij = GET(hx, i, mpi_params->sizes[1] - 1) -
+                    chx * (received_data[Y_END][i] -
+                           GET(ez, i, mpi_params->sizes[1] - 1));
+      SET(hx, i, mpi_params->sizes[1] - 1, hx_ij);
+    }
+  } // Don't update if no neighbours.
   MPI_Wait(&(requests[X_END]), MPI_STATUS_IGNORE);
   if (received_neighbour[X_END]) {
     for (int j = 0; j < mpi_params->sizes[1]; j++) {
       float hy_ij = GET(hy, mpi_params->sizes[0] - 1, j) +
-                    chx * (received_data[X_END][j] -
+                    chy * (received_data[X_END][j] -
                            GET(ez, mpi_params->sizes[0] - 1, j));
       SET(hy, mpi_params->sizes[0] - 1, j, hy_ij);
     }
@@ -451,14 +441,10 @@ int solve(struct SimulationParams *sim_params,
     receive_data(&ez, received_data, received_neighbour, recv_requests,
                  mpi_params);
 
-    hx_loop(&hx, &ez, sim_params, phys_params, mpi_params, received_data,
-            received_neighbour, recv_requests);
+    h_loop(&hx, &hy, &ez, sim_params, phys_params, mpi_params, received_data,
+           received_neighbour, recv_requests);
 
     send_data(&hx, send_requests, mpi_params, sent_data);
-
-    hy_loop(&hy, &ez, sim_params, phys_params, mpi_params, received_data,
-            received_neighbour, recv_requests);
-
     send_data(&hy, send_requests, mpi_params, sent_data);
 
     receive_data(&hx, received_data, received_neighbour, recv_requests,
