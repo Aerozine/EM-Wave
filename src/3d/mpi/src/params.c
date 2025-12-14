@@ -42,14 +42,32 @@ int init_params(struct SimulationParams *sim_params,
   mpi_params->neighbours = NULL;
   mpi_params->sizes = NULL;
   mpi_params->send_sizes = NULL;
+  mpi_params->send_array_sizes = NULL;
   mpi_params->sizes = malloc(sizeof(int) * sim_params->ndim);
-  mpi_params->send_sizes = malloc(sizeof(int) * sim_params->ndim);
-  if (!mpi_params->sizes || !mpi_params->send_sizes) {
+  mpi_params->send_sizes = malloc(sizeof(int *) * sim_params->ndim);
+  mpi_params->send_array_sizes = malloc(sizeof(int) * sim_params->ndim);
+  if (!mpi_params->sizes || !mpi_params->send_sizes ||
+      !mpi_params->send_array_sizes) {
     free(sim_params->size_of_space);
     free(sim_params->steps);
     free(mpi_params->sizes);
     free(mpi_params->send_sizes);
+    free(mpi_params->send_array_sizes);
     return EXIT_FAILURE;
+  }
+
+  for (int i = 0; i < sim_params->ndim; i++) {
+    mpi_params->send_sizes[i] = malloc(sizeof(int) * 2);
+    if (!mpi_params->send_sizes[i]) {
+      for (int j = i - 1; j >= 0; j--)
+        free(mpi_params->send_sizes[j]);
+      free(sim_params->size_of_space);
+      free(sim_params->steps);
+      free(mpi_params->sizes);
+      free(mpi_params->send_sizes);
+      free(mpi_params->send_array_sizes);
+      return EXIT_FAILURE;
+    }
   }
 
   return EXIT_SUCCESS;
@@ -58,9 +76,10 @@ int init_params(struct SimulationParams *sim_params,
 int set_params(struct SimulationParams *sim_params) {
   switch (sim_params->problem_id) {
   case 1: // small size problem
-    sim_params->steps[0] = sim_params->steps[1] =
+    sim_params->steps[0] = sim_params->steps[1] = sim_params->steps[2] =
         (3.e8 / 2.4e9) / 20.; // wavelength / 20
-    sim_params->size_of_space[0] = sim_params->size_of_space[1] = 500;
+    sim_params->size_of_space[0] = sim_params->size_of_space[1] =
+        sim_params->size_of_space[2] = 500;
     sim_params->steps[sim_params->ndim] =
         0.5 / (3.e8 * sqrt(1. / (sim_params->steps[0] * sim_params->steps[0]) +
                            1. / (sim_params->steps[1] * sim_params->steps[1]) +
@@ -70,9 +89,10 @@ int set_params(struct SimulationParams *sim_params) {
     sim_params->sampling_rate = 5; // save 1 step out of 5
     break;
   case 2: // larger size problem, usable for initial scaling tests
-    sim_params->steps[0] = sim_params->steps[1] =
+    sim_params->steps[0] = sim_params->steps[1] = sim_params->steps[2] =
         (3.e8 / 2.4e9) / 40.; // wavelength / 40
-    sim_params->size_of_space[0] = sim_params->size_of_space[1] = 16000;
+    sim_params->size_of_space[0] = sim_params->size_of_space[1] =
+        sim_params->size_of_space[2] = 16000;
     sim_params->steps[sim_params->ndim] =
         0.5 / (3.e8 * sqrt(1. / (sim_params->steps[0] * sim_params->steps[0]) +
                            1. / (sim_params->steps[1] * sim_params->steps[1]) +
@@ -82,9 +102,10 @@ int set_params(struct SimulationParams *sim_params) {
     sim_params->sampling_rate = 0; // don't save results
     break;
   case 3: // larger size problem, usable for initial scaling tests
-    sim_params->steps[0] = sim_params->steps[1] =
+    sim_params->steps[0] = sim_params->steps[1] = sim_params->steps[2] =
         (3.e8 / 2.4e9) / 40.; // wavelength / 40
-    sim_params->size_of_space[0] = sim_params->size_of_space[1] = 500;
+    sim_params->size_of_space[0] = sim_params->size_of_space[1] =
+        sim_params->size_of_space[2] = 500;
     sim_params->steps[sim_params->ndim] =
         0.5 / (3.e8 * sqrt(1. / (sim_params->steps[0] * sim_params->steps[0]) +
                            1. / (sim_params->steps[1] * sim_params->steps[1]) +
@@ -107,10 +128,14 @@ void free_params(struct SimulationParams *sim_params,
   free(sim_params->size_of_space);
   free(sim_params->steps);
 
+  for (int i = 0; i < sim_params->ndim; i++)
+    free(mpi_params->send_sizes[i]);
+
   free(mpi_params->procs_per_dim);
   free(mpi_params->periods);
   free(mpi_params->coords);
   free(mpi_params->neighbours);
   free(mpi_params->sizes);
   free(mpi_params->send_sizes);
+  free(mpi_params->send_array_sizes);
 }

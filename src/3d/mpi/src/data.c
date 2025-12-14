@@ -11,6 +11,7 @@ int init_data(struct data *data, const char *name, int nx, int ny, int nz,
   data->nx = nx;
   data->ny = ny;
   data->nz = nz;
+  data->nxny = nx * ny;
   data->dx = dx;
   data->dy = dy;
   data->dz = dz;
@@ -43,7 +44,7 @@ int write_data_vtk(struct data *data, int step, int rank) {
     return 1;
   }
 
-  uint64_t num_points = data->nx * data->ny;
+  uint64_t num_points = data->nx * data->ny * data->nz;
   uint64_t num_bytes = num_points * sizeof(float);
 
   fprintf(fp,

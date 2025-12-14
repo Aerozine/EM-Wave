@@ -90,10 +90,10 @@ int solve(struct SimulationParams *sim_params,
 
     // Magnetic field loop
 #pragma omp for schedule(static)
-    for (int k = 1; k < sim_params->size_of_space[2] - 1; k++) {
-      for (int j = 1; j < sim_params->size_of_space[1] - 1; j++) {
+    for (int k = 0; k < sim_params->size_of_space[2] - 1; k++) {
+      for (int j = 0; j < sim_params->size_of_space[1] - 1; j++) {
 #pragma omp simd
-        for (int i = 1; i < sim_params->size_of_space[0] - 1; i++) {
+        for (int i = 0; i < sim_params->size_of_space[0] - 1; i++) {
           float hx_ij = GET(&hx, i, j, k) +
                         chx1 * (GET(&ey, i, j, k + 1) - GET(&ey, i, j, k)) -
                         chx2 * (GET(&ez, i, j + 1, k) - GET(&ez, i, j, k));
@@ -112,10 +112,10 @@ int solve(struct SimulationParams *sim_params,
 
     // Electric field loop
 #pragma omp for schedule(static)
-    for (int k = 1; k < sim_params->size_of_space[2] - 1; k++) {
-      for (int j = 1; j < sim_params->size_of_space[1] - 1; j++) {
+    for (int k = 1; k < sim_params->size_of_space[2]; k++) {
+      for (int j = 1; j < sim_params->size_of_space[1]; j++) {
 #pragma omp simd
-        for (int i = 1; i < sim_params->size_of_space[0] - 1; i++) {
+        for (int i = 1; i < sim_params->size_of_space[0]; i++) {
           float ex_ij = GET(&ex, i, j, k) +
                         cex1 * (GET(&hz, i, j, k) - GET(&hz, i, j - 1, k)) -
                         cex2 * (GET(&hy, i, j, k) - GET(&hy, i, j, k - 1));
