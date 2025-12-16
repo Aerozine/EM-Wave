@@ -1021,7 +1021,7 @@ int solve(struct SimulationParams *sim_params,
     }
   }
 
-  if (mpi_params->rank == 0) {
+  if (sim_params->sampling_rate && mpi_params->rank == 0) {
     write_manifest_vtk("ex", sim_params->steps[sim_params->ndim],
                        sim_params->size_of_space[sim_params->ndim],
                        sim_params->sampling_rate, mpi_params->num_ranks);
