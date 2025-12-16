@@ -64,4 +64,5 @@ compile_flags.txt
 *.avi
 *.mp4
 *.pvsm
-
+utils/graphs
+utils/*.txt
