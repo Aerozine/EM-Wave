@@ -2,7 +2,7 @@
 TARGET = hpc_project
 RES_FOLDER?="data/"
 BUILD ?=reference 
-DIM3?=FALSE
+DIM3?=0
 SUB_FOLDER?=src
 RES_IDX=ez.pvd hx.pvd hy.pvd ex.pvd ey.pvd hz.pvd
 # checking if build has the right values
@@ -10,7 +10,7 @@ ifeq ($(filter $(BUILD),reference stability cache mpi openmp gpu),)
     $(error Invalid build argument BUILD="$(BUILD)". possible values are stability cache mpi openmp gpu )
 endif
 
-ifeq ($(DIM3), TRUE)
+ifeq ($(DIM3), 1)
 	SUB_FOLDER = src/3d
 endif
 
@@ -39,6 +39,6 @@ clean:
 clean_all:
 	$(RM) $(RES_IDX) $(TARGET)  $(RES_FOLDER)/*
 	make -j$(nproc) -C $(SUB_FOLDER)/reference clean
-	if [[ "$(DIM3)" == "FALSE" ]]; then make -j$(nproc) -C $(SUB_FOLDER)/stability clean; fi
+	if [[ "$(DIM3)" == "0" ]]; then make -j$(nproc) -C $(SUB_FOLDER)/stability clean; fi
 	make -j$(nproc) -C $(SUB_FOLDER)/mpi clean
 	make -j$(nproc) -C $(SUB_FOLDER)/openmp clean

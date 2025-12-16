@@ -66,3 +66,4 @@ compile_flags.txt
 *.pvsm
 utils/graphs
 utils/*.txt
+*.pdf
