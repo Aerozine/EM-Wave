@@ -2,7 +2,7 @@
 #SBATCH --job-name="MPI weak scaling"
 #SBATCH --exclusive
 #SBATCH --mem=0
-#SBATCH --time=02:00:00
+#SBATCH --time=04:00:00
 #SBATCH --output="mpi_weak_scaling_slurm.log"
 
 module purge

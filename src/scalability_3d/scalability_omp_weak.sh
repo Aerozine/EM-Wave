@@ -3,7 +3,7 @@
 #SBATCH --exclusive
 #SBATCH --mem=0
 #SBATCH --time=08:00:00
-#SBATCH --output="OMP_weak_scaling_slurm.log"
+#SBATCH --output="OMP_weak_scaling_3d_slurm.log"
 
 module load Info0939Tools
 numCpuCores=$SLURM_CPUS_ON_NODE

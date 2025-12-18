@@ -1,9 +1,9 @@
 #!/bin/bash -l
-#SBATCH --job-name="MPI weak scaling"
+#SBATCH --job-name="MPI strong scaling"
 #SBATCH --exclusive
 #SBATCH --mem=0
-#SBATCH --time=02:00:00
-#SBATCH --output="mpi_weak_scaling_slurm.log"
+#SBATCH --time=08:00:00
+#SBATCH --output="mpi_strong_scaling_3d_slurm.log"
 
 module purge
 module load releases/2021b
@@ -13,7 +13,7 @@ numCpuCores=$SLURM_CPUS_ON_NODE
 startDir=$(pwd)
 
 executable="$HOME/EM-Wave/hpc_project_mpi_3d"
-args="3"
+args="3 740"
 
 echo "Job info"
 echo "--------"
@@ -24,7 +24,7 @@ echo "Start time:" $(date +"%d-%m-%Y %H:%M:%S")
 echo
 
 echo "Scaling experiment"
-echo "MPI - weak scale"
+echo "MPI - strong scale"
 echo "------------------"
 echo
 
@@ -35,7 +35,6 @@ do
   export OMP_PROC_BIND=${binding}
 
   numRanks=$SLURM_JOB_NUM_NODES
-  grid_size=160
 
   while [[ $numRanks -le $((numCpuCores * SLURM_JOB_NUM_NODES)) ]];
   do
@@ -47,8 +46,8 @@ do
       srunBind=$(seq -s ',' 0 $((numRanks / SLURM_JOB_NUM_NODES - 1)))
     fi
 
-    workDir="mpi_scalability_weak_3d"
-    output="${binding}_${SLURM_JOB_NUM_NODES}nodes_${numRanks}ranks_${grid_size}.log"
+    workDir="mpi_scalability_strong_3d"
+    output="${binding}_${SLURM_JOB_NUM_NODES}nodes_${numRanks}ranks.log"
     mkdir -p ${workDir}
 
     echo "[$(date +"%d-%m-%Y %H:%M:%S")] Running with binding=${binding}, numranks=${numRanks}, workdir=${workDir}"
@@ -66,10 +65,7 @@ do
     echo "[$(date +"%d-%m-%Y %H:%M:%S")] Done in ${elapsed} secs"
     echo
 
-
     (( numRanks *= 2 ))
-
-    grid_size=$(awk -v g="$grid_size" 'BEGIN { printf "%.0f\n", g * (2)^(1/3) }')
   done
 done
 

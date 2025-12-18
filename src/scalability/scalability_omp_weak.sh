@@ -2,7 +2,7 @@
 #SBATCH --job-name="OMP weak scalability"
 #SBATCH --exclusive
 #SBATCH --mem=0
-#SBATCH --time=02:00:00
+#SBATCH --time=04:00:00
 #SBATCH --output="OMP_weak_scaling_slurm.log"
 
 module load Info0939Tools
