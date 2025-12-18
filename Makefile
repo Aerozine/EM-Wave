@@ -22,7 +22,7 @@ run:$(TARGET)
 run_mpi:$(TARGET)
 	mpirun -n 4 $(TARGET) 1  > out.log 2>&1
 
-$(TARGET): clean_all
+$(TARGET):
 	$(MAKE) -C $(SUB_FOLDER)/$(BUILD) RES_FOLDER=$(RES_FOLDER) -j$(shell nproc) build
 
 $(RES_IDX):$(TARGET)
@@ -42,3 +42,4 @@ clean_all:
 	if [[ "$(DIM3)" == "0" ]]; then make -j$(nproc) -C $(SUB_FOLDER)/stability clean; fi
 	make -j$(nproc) -C $(SUB_FOLDER)/mpi clean
 	make -j$(nproc) -C $(SUB_FOLDER)/openmp clean
+	make -j$(nproc) -C $(SUB_FOLDER)/gpu clean
