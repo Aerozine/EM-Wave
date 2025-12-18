@@ -12,8 +12,8 @@ module load Info0939Tools
 numCpuCores=$SLURM_CPUS_ON_NODE
 startDir=$(pwd)
 
-executable="$HOME/EM-Wave/hpc_project_mpi"
-args="3 20000"
+executable="$HOME/EM-Wave/hpc_project_mpi_3d"
+args="3 740"
 
 echo "Job info"
 echo "--------"
@@ -46,7 +46,7 @@ do
       srunBind=$(seq -s ',' 0 $((numRanks / SLURM_JOB_NUM_NODES - 1)))
     fi
 
-    workDir="mpi_scalability_strong"
+    workDir="mpi_scalability_strong_3d"
     output="${binding}_${SLURM_JOB_NUM_NODES}nodes_${numRanks}ranks.log"
     mkdir -p ${workDir}
 

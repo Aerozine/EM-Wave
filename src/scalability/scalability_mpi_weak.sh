@@ -12,7 +12,7 @@ module load Info0939Tools
 numCpuCores=$SLURM_CPUS_ON_NODE
 startDir=$(pwd)
 
-executable="$HOME/EM-Wave/hpc_project"
+executable="$HOME/EM-Wave/hpc_project_mpi"
 args="3"
 
 echo "Job info"
@@ -35,7 +35,7 @@ do
   export OMP_PROC_BIND=${binding}
 
   numRanks=$SLURM_JOB_NUM_NODES
-  grid_size=1500
+  grid_size=2000
 
   while [[ $numRanks -le $((numCpuCores * SLURM_JOB_NUM_NODES)) ]];
   do
@@ -48,7 +48,7 @@ do
     fi
 
     workDir="mpi_scalability_weak"
-    output="${binding}_${SLURM_JOB_NUM_NODES}nodes_${numRanks}ranks.log"
+    output="${binding}_${SLURM_JOB_NUM_NODES}nodes_${numRanks}ranks_${grid_size}.log"
     mkdir -p ${workDir}
 
     echo "[$(date +"%d-%m-%Y %H:%M:%S")] Running with binding=${binding}, numranks=${numRanks}, workdir=${workDir}"
