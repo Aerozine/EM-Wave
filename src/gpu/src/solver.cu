@@ -18,7 +18,6 @@ __global__ void apply_source_kern(real *__restrict__ ez, size_t pitch,
     return;
   ez[PIDX(src_i, src_j, pitch)] = value;
 }
-
 __global__ void upd_h_kern(real *__restrict__ hx, size_t hx_pitch,
                            real *__restrict__ hy, size_t hy_pitch,
                            const real *__restrict__ ez, size_t ez_pitch, int nx,

@@ -43,3 +43,15 @@ clean_all:
 	make -j$(nproc) -C $(SUB_FOLDER)/mpi clean
 	make -j$(nproc) -C $(SUB_FOLDER)/openmp clean
 	make -j$(nproc) -C $(SUB_FOLDER)/gpu clean
+
+# hardcoded profiling
+gpu_memcheck:
+	/usr/local/cuda/bin/compute-sanitizer --tool initcheck --leak-check full --print-limit 2  ./hpc_project 1
+#
+#	/usr/local/cuda/bin/compute-sanitizer --tool memcheck --leak-check full --print-limit 2  ./hpc_project 1
+#/usr/local/cuda/bin/compute-sanitizer --tool racecheck --leak-check full --print-limit 2  ./hpc_project 1
+#/usr/local/cuda/bin/compute-sanitizer --tool synccheck --leak-check full --print-limit 2  ./hpc_project 1
+gpu_profile:
+	ncu -f --set full --target-processes all --call-stack  --nvtx -o profile ./hpc_project 2
+gpu_nsys:
+	nsys profile -t cuda,nvtx,osrt -o sys_profile ./hpc_project 2

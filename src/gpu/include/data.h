@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 // Row-major indexing for coalesced access
-#define PIDX(i, j, pitch) ((j) * ((pitch) / sizeof(double)) + (i))
+#define PIDX(i, j, pitch) ((j) * ((pitch) / sizeof(real)) + (i))
 
 struct data {
   const char *name;
