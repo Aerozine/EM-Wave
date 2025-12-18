@@ -24,9 +24,10 @@ figname = "graphs/OMP_strong"
 
 fig, ax = plt.subplots(figsize=(10, 7))
 ax.plot(cores_strong, omp_strong_close, "-o", label="Strong - close")
-ax.plot(cores_strong, omp_strong_spread, "-o", label="Strong - weak")
+ax.plot(cores_strong, omp_strong_spread, "-o", label="Strong - spread")
 ax.set_xlabel("Number of cores", fontsize=16)
 # ax.set_xscale("log")
+ax.grid()
 ax.set_xticks(cores_strong)
 ax.set_ylabel("MUpdates/seconds", fontsize=16)
 ax.legend(fontsize=16)
@@ -40,15 +41,16 @@ plt.savefig(figname + ".svg")
 # OMP WEAK
 # =============
 
-figname = "graphs/OMP_scala"
+figname = "graphs/OMP_weak"
 
-# fig, ax = plt.subplots(figsize=(10, 7))
-ax.plot(cores_weak, omp_weak_close, "-o", label="Weak - close")
-ax.plot(cores_weak, omp_weak_spread, "-o", label="Weak - spread")
+fig, ax = plt.subplots(figsize=(10, 7))
+ax.plot(cores_weak, omp_weak_close / cores_weak, "-o", label="Weak - close")
+ax.plot(cores_weak, omp_weak_spread / cores_weak, "-o", label="Weak - spread")
 ax.set_xlabel("Number of cores", fontsize=16)
 # ax.set_xscale("log")
+ax.grid()
 ax.set_xticks(cores_weak)
-ax.set_ylabel("MUpdates/seconds", fontsize=16)
+ax.set_ylabel("MUpdates/seconds/cores", fontsize=16)
 ax.legend(fontsize=16)
 ax.tick_params(axis="both", which="major", labelsize=12)
 ax.tick_params(axis="both", which="minor", labelsize=12)

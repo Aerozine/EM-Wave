@@ -172,30 +172,57 @@ inline void h_loop(struct data *hx, struct data *hy, struct data *hz,
                (phys_params->mu * sim_params->steps[1]);
   float chz2 = sim_params->steps[sim_params->ndim] /
                (phys_params->mu * sim_params->steps[0]);
-  for (int k = 0; k < mpi_params->sizes[2]; k++) {
-    for (int j = 0; j < mpi_params->sizes[1]; j++) {
-      for (int i = 0; i < mpi_params->sizes[0]; i++) {
-        if (j != mpi_params->sizes[1] - 1 && k != mpi_params->sizes[2] - 1) {
-          float hx_ij = GET(hx, i, j, k) +
-                        chx1 * (GET(ey, i, j, k + 1) - GET(ey, i, j, k)) -
-                        chx2 * (GET(ez, i, j + 1, k) - GET(ez, i, j, k));
-          SET(hx, i, j, k, hx_ij);
-        }
+  for (int k = 0; k < mpi_params->sizes[2] - 1; k++) {
+    for (int j = 0; j < mpi_params->sizes[1] - 1; j++) {
+      for (int i = 0; i < mpi_params->sizes[0] - 1; i++) {
+        float hx_ij = GET(hx, i, j, k) +
+                      chx1 * (GET(ey, i, j, k + 1) - GET(ey, i, j, k)) -
+                      chx2 * (GET(ez, i, j + 1, k) - GET(ez, i, j, k));
+        SET(hx, i, j, k, hx_ij);
 
-        if (i != mpi_params->sizes[0] - 1 && k != mpi_params->sizes[2] - 1) {
-          float hy_ij = GET(hy, i, j, k) +
-                        chy1 * (GET(ez, i + 1, j, k) - GET(ez, i, j, k)) -
-                        chy2 * (GET(ex, i, j, k + 1) - GET(ex, i, j, k));
-          SET(hy, i, j, k, hy_ij);
-        }
+        float hy_ij = GET(hy, i, j, k) +
+                      chy1 * (GET(ez, i + 1, j, k) - GET(ez, i, j, k)) -
+                      chy2 * (GET(ex, i, j, k + 1) - GET(ex, i, j, k));
+        SET(hy, i, j, k, hy_ij);
 
-        if (i != mpi_params->sizes[0] - 1 && j != mpi_params->sizes[1] - 1) {
-          float hz_ij = GET(hz, i, j, k) +
-                        chz1 * (GET(ex, i, j + 1, k) - GET(ex, i, j, k)) -
-                        chz2 * (GET(ey, i + 1, j, k) - GET(ey, i, j, k));
-          SET(hz, i, j, k, hz_ij);
-        }
+        float hz_ij = GET(hz, i, j, k) +
+                      chz1 * (GET(ex, i, j + 1, k) - GET(ex, i, j, k)) -
+                      chz2 * (GET(ey, i + 1, j, k) - GET(ey, i, j, k));
+        SET(hz, i, j, k, hz_ij);
       }
+    }
+  }
+
+  // hx loop for i = mpi_params->sizes[0] - 1
+  int i = mpi_params->sizes[0] - 1;
+  for (int k = 0; k < mpi_params->sizes[2] - 1; k++) {
+    for (int j = 0; j < mpi_params->sizes[1] - 1; j++) {
+      float hx_ij = GET(hx, i, j, k) +
+                    chx1 * (GET(ey, i, j, k + 1) - GET(ey, i, j, k)) -
+                    chx2 * (GET(ez, i, j + 1, k) - GET(ez, i, j, k));
+      SET(hx, i, j, k, hx_ij);
+    }
+  }
+
+  // hy loop for j = mpi_params->sizes[1] - 1
+  int j = mpi_params->sizes[1] - 1;
+  for (int k = 0; k < mpi_params->sizes[2] - 1; k++) {
+    for (int i = 0; i < mpi_params->sizes[0] - 1; i++) {
+      float hy_ij = GET(hy, i, j, k) +
+                    chy1 * (GET(ez, i + 1, j, k) - GET(ez, i, j, k)) -
+                    chy2 * (GET(ex, i, j, k + 1) - GET(ex, i, j, k));
+      SET(hy, i, j, k, hy_ij);
+    }
+  }
+
+  // hz loop for k = mpi_params->sizes[2] - 1
+  int k = mpi_params->sizes[2] - 1;
+  for (int j = 0; j < mpi_params->sizes[1] - 1; j++) {
+    for (int i = 0; i < mpi_params->sizes[0] - 1; i++) {
+      float hz_ij = GET(hz, i, j, k) +
+                    chz1 * (GET(ex, i, j + 1, k) - GET(ex, i, j, k)) -
+                    chz2 * (GET(ey, i + 1, j, k) - GET(ey, i, j, k));
+      SET(hz, i, j, k, hz_ij);
     }
   }
 
@@ -351,30 +378,57 @@ inline void e_loop(struct data *hx, struct data *hy, struct data *hz,
         cez2 = sim_params->steps[sim_params->ndim] /
                (sim_params->steps[1] * phys_params->eps);
 
-  for (int k = 0; k < mpi_params->sizes[2]; k++) {
-    for (int j = 0; j < mpi_params->sizes[1]; j++) {
-      for (int i = 0; i < mpi_params->sizes[0]; i++) {
-        if (j != 0 && k != 0) {
-          float ex_ij = GET(ex, i, j, k) +
-                        cex1 * (GET(hz, i, j, k) - GET(hz, i, j - 1, k)) -
-                        cex2 * (GET(hy, i, j, k) - GET(hy, i, j, k - 1));
-          SET(ex, i, j, k, ex_ij);
-        }
+  for (int k = 1; k < mpi_params->sizes[2]; k++) {
+    for (int j = 1; j < mpi_params->sizes[1]; j++) {
+      for (int i = 1; i < mpi_params->sizes[0]; i++) {
+        float ex_ij = GET(ex, i, j, k) +
+                      cex1 * (GET(hz, i, j, k) - GET(hz, i, j - 1, k)) -
+                      cex2 * (GET(hy, i, j, k) - GET(hy, i, j, k - 1));
+        SET(ex, i, j, k, ex_ij);
 
-        if (i != 0 && k != 0) {
-          float ey_ij = GET(ey, i, j, k) +
-                        cey1 * (GET(hx, i, j, k) - GET(hx, i, j, k - 1)) -
-                        cey2 * (GET(hz, i, j, k) - GET(hz, i - 1, j, k));
-          SET(ey, i, j, k, ey_ij);
-        }
+        float ey_ij = GET(ey, i, j, k) +
+                      cey1 * (GET(hx, i, j, k) - GET(hx, i, j, k - 1)) -
+                      cey2 * (GET(hz, i, j, k) - GET(hz, i - 1, j, k));
+        SET(ey, i, j, k, ey_ij);
 
-        if (i != 0 && j != 0) {
-          float ez_ij = GET(ez, i, j, k) +
-                        cez1 * (GET(hy, i, j, k) - GET(hy, i - 1, j, k)) -
-                        cez2 * (GET(hx, i, j, k) - GET(hx, i, j - 1, k));
-          SET(ez, i, j, k, ez_ij);
-        }
+        float ez_ij = GET(ez, i, j, k) +
+                      cez1 * (GET(hy, i, j, k) - GET(hy, i - 1, j, k)) -
+                      cez2 * (GET(hx, i, j, k) - GET(hx, i, j - 1, k));
+        SET(ez, i, j, k, ez_ij);
       }
+    }
+  }
+
+  // ex loop for i = 0
+  int i = 0;
+  for (int k = 1; k < mpi_params->sizes[2]; k++) {
+    for (int j = 1; j < mpi_params->sizes[1]; j++) {
+      float ex_ij = GET(ex, i, j, k) +
+                    cex1 * (GET(hz, i, j, k) - GET(hz, i, j - 1, k)) -
+                    cex2 * (GET(hy, i, j, k) - GET(hy, i, j, k - 1));
+      SET(ex, i, j, k, ex_ij);
+    }
+  }
+
+  // ey loop for j = 0
+  int j = 0;
+  for (int k = 1; k < mpi_params->sizes[2]; k++) {
+    for (int i = 1; i < mpi_params->sizes[0]; i++) {
+      float ey_ij = GET(ey, i, j, k) +
+                    cey1 * (GET(hx, i, j, k) - GET(hx, i, j, k - 1)) -
+                    cey2 * (GET(hz, i, j, k) - GET(hz, i - 1, j, k));
+      SET(ey, i, j, k, ey_ij);
+    }
+  }
+
+  // ez loop for k = 0
+  int k = 0;
+  for (int j = 1; j < mpi_params->sizes[1]; j++) {
+    for (int i = 1; i < mpi_params->sizes[0]; i++) {
+      float ez_ij = GET(ez, i, j, k) +
+                    cez1 * (GET(hy, i, j, k) - GET(hy, i - 1, j, k)) -
+                    cez2 * (GET(hx, i, j, k) - GET(hx, i, j - 1, k));
+      SET(ez, i, j, k, ez_ij);
     }
   }
 
@@ -951,15 +1005,16 @@ int solve(struct SimulationParams *sim_params,
     }
 
     // Send E field, then receive it for the H loop
-    send_data(&ex, send_requests, mpi_params, sent_data);
-    send_data(&ey, send_requests, mpi_params, sent_data);
-    send_data(&ez, send_requests, mpi_params, sent_data);
     receive_data(&ex, received_data, received_neighbour, recv_requests,
                  mpi_params);
     receive_data(&ey, received_data, received_neighbour, recv_requests,
                  mpi_params);
     receive_data(&ez, received_data, received_neighbour, recv_requests,
                  mpi_params);
+
+    send_data(&ex, send_requests, mpi_params, sent_data);
+    send_data(&ey, send_requests, mpi_params, sent_data);
+    send_data(&ez, send_requests, mpi_params, sent_data);
 
     h_loop(&hx, &hy, &hz, &ex, &ey, &ez, sim_params, phys_params, mpi_params,
            received_data, received_neighbour, recv_requests);
