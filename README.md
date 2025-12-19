@@ -36,8 +36,8 @@ The possible targets are:
 
 All of those options are available for both the 2D and 3D cases. For the 2D case, there is an additional target, `stability`, corresponding to the stability analysis. To build it, a Python environment with numpy and matplotlib is required.
 
-- There is a special target `gpu_special` that implements varying spatial permittivity for 2D simulations.
-  
+There is a special target `gpu_special` that implements varying spatial permittivity for 2D simulations.
+
 Running the simulation depends on the build. For:
 
 -   `reference`, run `./hpc_project <id>`, where `<id>` is the problem id,
@@ -45,32 +45,3 @@ Running the simulation depends on the build. For:
 -   `mpi`, run `mpirun -n <procs> hpc_project <id> [size]`, where `<procs>` is the number of processes to run.
 
 Those commands should of course be adapted to the cluster.
-=======
-# Propagation of EM waves
-
-![](doc/emag_waves.png)
-
-This is a project realised for the _High Performance Scientific Computing_ class
-at the University of Liège.
-
-The goal is to simulate, using a finite difference scheme, the propagation of
-electromagnetic waves.
-The parallelization of the code and the its execution on a cluster will be studied.
-At some point, a simulation will be run on a GPU.
-
-## Building and running
-
-The code can be compiled with the following commands :
-
-```bash
-BUILD="<target>" make -j$(nprocs)
-```
-
-where BUILD is one of folder target. Actually there is `reference`, `stability`, `openmp`, and `mpi`.
-To build stability, an environment python with numpy and matplotlib is required.
-
-It can be run with :
-
-```bash
-make run
-```
