@@ -40,7 +40,7 @@ There is a special target `gpu_special` that implements varying spatial permitti
 
 Running the simulation depends on the build. For:
 
--   `reference`, run `./hpc_project <id>`, where `<id>` is the problem id,
+-   `reference`and `gpu` , run `./hpc_project <id>`, where `<id>` is the problem id,
 -   `openmp`, run `./hpc_project <id> [size] [threads]`, where `[size]` is the size of the sides of the spatial grid (which is a square), and `[threads]` is the number of threads to use,
 -   `mpi`, run `mpirun -n <procs> hpc_project <id> [size]`, where `<procs>` is the number of processes to run.
 
