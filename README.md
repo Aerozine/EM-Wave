@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Propagation of EM waves
 
 ![](doc/emag_waves.png)
@@ -75,4 +74,3 @@ It can be run with :
 ```bash
 make run
 ```
->>>>>>> lodev
