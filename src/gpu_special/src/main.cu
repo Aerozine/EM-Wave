@@ -28,8 +28,7 @@ real eps_vertical_barrier(real x, real y, real eps0) {
   real barrier_width = domain_size * 0.04; // 4% of domain width
 
   // Higher permittivity in the barrier region (offset to the right of source)
-  real barrier_x =
-      domain_center_x + domain_size * 0.2;
+  real barrier_x = domain_center_x + domain_size * 0.2;
   if (fabs(x - barrier_x) < barrier_width / 2.0) {
     return eps0 * 25.0; // Relative permittivity of 25 (very high contrast!)
   }
@@ -254,8 +253,6 @@ real eps_grin_lens(real x, real y, real eps0) {
 
   return eps0;
 }
-
-
 
 void init_params(struct SimulationParams *params) {
   params->dx = 1.;

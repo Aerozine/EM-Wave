@@ -10,7 +10,6 @@ struct PhysicalParams {
   real eps, mu;
 };
 
-
 typedef real (*PermittivityFunc)(real x, real y, real eps0);
 
 #ifdef DEBUG

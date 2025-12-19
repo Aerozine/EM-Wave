@@ -7,76 +7,156 @@
 #include <math.h>
 #include <stdlib.h>
 
-#define CUDA_CHECK(call)                                                       \
-  do {                                                                         \
-    cudaError_t err = call;                                                    \
-    if (err != cudaSuccess) {                                                  \
-      fprintf(stderr, "CUDA error %s at %s:%d\n", cudaGetErrorString(err),     \
-              __FILE__, __LINE__);                                             \
-      exit(EXIT_FAILURE);                                                      \
-    }                                                                          \
-  } while (0)
+
+// Constant memory for physics parameters
+__constant__ double c_chx, c_chy, c_chz, c_cex, c_cey, c_cez;
 
 #define GETK(data, nx, ny, i, j, k)                                            \
   ((data)[(nx) * (ny) * (k) + (nx) * (j) + (i)])
 #define SETK(data, nx, ny, i, j, k, val)                                       \
   ((data)[(nx) * (ny) * (k) + (nx) * (j) + (i)] = (val))
 
-// Update Ex: dEx/dt = (1/eps) * (dHz/dy - dHy/dz)
 __global__ void upd_ex_kern(double *ex, const double *hy, const double *hz,
-                            int nx, int ny, int nz, double cey, double cez) {
+                            int nx, int ny, int nz) {
+  __shared__ double s_hz[34][6][6]; // 32+2 for halo, 4+2, 4+2
+  __shared__ double s_hy[34][6][6];
+
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
   int k = blockIdx.z * blockDim.z + threadIdx.z;
+
+  int tx = threadIdx.x;
+  int ty = threadIdx.y;
+  int tz = threadIdx.z;
+
+  // Load into shared memory with halos
+  if (i < nx - 1 && j < ny - 1 && k < nz - 1) {
+    s_hz[tx][ty][tz] = GETK(hz, nx - 1, ny - 1, i, j, k);
+    s_hy[tx][ty][tz] = GETK(hy, nx - 1, ny, i, j, k);
+
+    // Load halo regions
+    if (ty == 0 && j > 0) {
+      s_hz[tx][ty + 5][tz] = GETK(hz, nx - 1, ny - 1, i, j - 1, k);
+    }
+    if (tz == 0 && k > 0) {
+      s_hy[tx][ty][tz + 5] = GETK(hy, nx - 1, ny, i, j, k - 1);
+    }
+  }
+  __syncthreads();
+
   if (!(i < nx - 1 && j > 0 && j < ny - 1 && k > 0 && k < nz - 1))
     return;
 
-  double ex_ijk =
-      GETK(ex, nx, ny, i, j, k) +
-      cey * (GETK(hz, nx - 1, ny - 1, i, j, k) -
-             GETK(hz, nx - 1, ny - 1, i, j - 1, k)) -
-      cez * (GETK(hy, nx - 1, ny, i, j, k) - GETK(hy, nx - 1, ny, i, j, k - 1));
+  double ex_ijk;
+  if (ty > 0 && tz > 0) {
+    // Use shared memory
+    ex_ijk = GETK(ex, nx, ny, i, j, k) +
+             c_cey * (s_hz[tx][ty][tz] - s_hz[tx][ty - 1][tz]) -
+             c_cez * (s_hy[tx][ty][tz] - s_hy[tx][ty][tz - 1]);
+  } else {
+    // Fall back to global memory for boundary cases
+    ex_ijk = GETK(ex, nx, ny, i, j, k) +
+             c_cey * (GETK(hz, nx - 1, ny - 1, i, j, k) -
+                      GETK(hz, nx - 1, ny - 1, i, j - 1, k)) -
+             c_cez * (GETK(hy, nx - 1, ny, i, j, k) -
+                      GETK(hy, nx - 1, ny, i, j, k - 1));
+  }
   SETK(ex, nx, ny, i, j, k, ex_ijk);
 }
 
-// Update Ey: dEy/dt = (1/eps) * (dHx/dz - dHz/dx)
 __global__ void upd_ey_kern(double *ey, const double *hx, const double *hz,
-                            int nx, int ny, int nz, double cex, double cez) {
+                            int nx, int ny, int nz) {
+  __shared__ double s_hx[34][6][6];
+  __shared__ double s_hz[34][6][6];
+
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
   int k = blockIdx.z * blockDim.z + threadIdx.z;
+
+  int tx = threadIdx.x;
+  int ty = threadIdx.y;
+  int tz = threadIdx.z;
+
+  if (i < nx && j < ny - 1 && k < nz - 1) {
+    if (i < nx - 1)
+      s_hz[tx][ty][tz] = GETK(hz, nx - 1, ny - 1, i, j, k);
+    s_hx[tx][ty][tz] = GETK(hx, nx, ny - 1, i, j, k);
+
+    if (tx == 0 && i > 0) {
+      s_hz[tx + 33][ty][tz] = GETK(hz, nx - 1, ny - 1, i - 1, j, k);
+    }
+    if (tz == 0 && k > 0) {
+      s_hx[tx][ty][tz + 5] = GETK(hx, nx, ny - 1, i, j, k - 1);
+    }
+  }
+  __syncthreads();
 
   if (!(i > 0 && i < nx - 1 && j < ny - 1 && k > 0 && k < nz - 1))
     return;
-  double ey_ijk = GETK(ey, nx, ny, i, j, k) +
-                  cez * (GETK(hx, nx, ny - 1, i, j, k) -
-                         GETK(hx, nx, ny - 1, i, j, k - 1)) -
-                  cex * (GETK(hz, nx - 1, ny - 1, i, j, k) -
-                         GETK(hz, nx - 1, ny - 1, i - 1, j, k));
+
+  double ey_ijk;
+  if (tx > 0 && tz > 0 && i < nx - 1) {
+    ey_ijk = GETK(ey, nx, ny, i, j, k) +
+             c_cez * (s_hx[tx][ty][tz] - s_hx[tx][ty][tz - 1]) -
+             c_cex * (s_hz[tx][ty][tz] - s_hz[tx - 1][ty][tz]);
+  } else {
+    ey_ijk = GETK(ey, nx, ny, i, j, k) +
+             c_cez * (GETK(hx, nx, ny - 1, i, j, k) -
+                      GETK(hx, nx, ny - 1, i, j, k - 1)) -
+             c_cex * (GETK(hz, nx - 1, ny - 1, i, j, k) -
+                      GETK(hz, nx - 1, ny - 1, i - 1, j, k));
+  }
   SETK(ey, nx, ny, i, j, k, ey_ijk);
 }
 
-// Update Ez: dEz/dt = (1/eps) * (dHy/dx - dHx/dy)
 __global__ void upd_ez_kern(double *ez, const double *hx, const double *hy,
-                            int nx, int ny, int nz, double cex, double cey) {
+                            int nx, int ny, int nz) {
+  __shared__ double s_hx[34][6][6];
+  __shared__ double s_hy[34][6][6];
+
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
   int k = blockIdx.z * blockDim.z + threadIdx.z;
 
-  // Ez is at (i, j, k+0.5) and has dimensions [nx][ny][nz]
+  int tx = threadIdx.x;
+  int ty = threadIdx.y;
+  int tz = threadIdx.z;
+
+  if (i < nx && j < ny && k < nz - 1) {
+    if (i < nx - 1)
+      s_hy[tx][ty][tz] = GETK(hy, nx - 1, ny, i, j, k);
+    if (j < ny - 1)
+      s_hx[tx][ty][tz] = GETK(hx, nx, ny - 1, i, j, k);
+
+    if (tx == 0 && i > 0 && i < nx) {
+      s_hy[tx + 33][ty][tz] = GETK(hy, nx - 1, ny, i - 1, j, k);
+    }
+    if (ty == 0 && j > 0 && j < ny) {
+      s_hx[tx][ty + 5][tz] = GETK(hx, nx, ny - 1, i, j - 1, k);
+    }
+  }
+  __syncthreads();
+
   if (!(i > 0 && i < nx - 1 && j > 0 && j < ny - 1 && k < nz - 1))
     return;
-  double ez_ijk =
-      GETK(ez, nx, ny, i, j, k) +
-      cex *
-          (GETK(hy, nx - 1, ny, i, j, k) - GETK(hy, nx - 1, ny, i - 1, j, k)) -
-      cey * (GETK(hx, nx, ny - 1, i, j, k) - GETK(hx, nx, ny - 1, i, j - 1, k));
+
+  double ez_ijk;
+  if (tx > 0 && ty > 0 && i < nx - 1 && j < ny - 1) {
+    ez_ijk = GETK(ez, nx, ny, i, j, k) +
+             c_cex * (s_hy[tx][ty][tz] - s_hy[tx - 1][ty][tz]) -
+             c_cey * (s_hx[tx][ty][tz] - s_hx[tx][ty - 1][tz]);
+  } else {
+    ez_ijk = GETK(ez, nx, ny, i, j, k) +
+             c_cex * (GETK(hy, nx - 1, ny, i, j, k) -
+                      GETK(hy, nx - 1, ny, i - 1, j, k)) -
+             c_cey * (GETK(hx, nx, ny - 1, i, j, k) -
+                      GETK(hx, nx, ny - 1, i, j - 1, k));
+  }
   SETK(ez, nx, ny, i, j, k, ez_ijk);
 }
 
-// Update Hx: dHx/dt = (1/mu) * (dEy/dz - dEz/dy)
 __global__ void upd_hx_kern(double *hx, const double *ey, const double *ez,
-                            int nx, int ny, int nz, double chy, double chz) {
+                            int nx, int ny, int nz) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
   int k = blockIdx.z * blockDim.z + threadIdx.z;
@@ -84,14 +164,13 @@ __global__ void upd_hx_kern(double *hx, const double *ey, const double *ez,
     return;
   double hx_ijk =
       GETK(hx, nx, ny - 1, i, j, k) +
-      chz * (GETK(ey, nx, ny, i, j, k + 1) - GETK(ey, nx, ny, i, j, k)) -
-      chy * (GETK(ez, nx, ny, i, j + 1, k) - GETK(ez, nx, ny, i, j, k));
+      c_chz * (GETK(ey, nx, ny, i, j, k + 1) - GETK(ey, nx, ny, i, j, k)) -
+      c_chy * (GETK(ez, nx, ny, i, j + 1, k) - GETK(ez, nx, ny, i, j, k));
   SETK(hx, nx, ny - 1, i, j, k, hx_ijk);
 }
 
-// Update Hy: dHy/dt = (1/mu) * (dEz/dx - dEx/dz)
 __global__ void upd_hy_kern(double *hy, const double *ex, const double *ez,
-                            int nx, int ny, int nz, double chx, double chz) {
+                            int nx, int ny, int nz) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
   int k = blockIdx.z * blockDim.z + threadIdx.z;
@@ -99,14 +178,13 @@ __global__ void upd_hy_kern(double *hy, const double *ex, const double *ez,
     return;
   double hy_ijk =
       GETK(hy, nx - 1, ny, i, j, k) +
-      chx * (GETK(ez, nx, ny, i + 1, j, k) - GETK(ez, nx, ny, i, j, k)) -
-      chz * (GETK(ex, nx, ny, i, j, k + 1) - GETK(ex, nx, ny, i, j, k));
+      c_chx * (GETK(ez, nx, ny, i + 1, j, k) - GETK(ez, nx, ny, i, j, k)) -
+      c_chz * (GETK(ex, nx, ny, i, j, k + 1) - GETK(ex, nx, ny, i, j, k));
   SETK(hy, nx - 1, ny, i, j, k, hy_ijk);
 }
 
-// Update Hz: dHz/dt = (1/mu) * (dEx/dy - dEy/dx)
 __global__ void upd_hz_kern(double *hz, const double *ex, const double *ey,
-                            int nx, int ny, int nz, double chx, double chy) {
+                            int nx, int ny, int nz) {
   int i = blockIdx.x * blockDim.x + threadIdx.x;
   int j = blockIdx.y * blockDim.y + threadIdx.y;
   int k = blockIdx.z * blockDim.z + threadIdx.z;
@@ -115,9 +193,16 @@ __global__ void upd_hz_kern(double *hz, const double *ex, const double *ey,
     return;
   double hz_ijk =
       GETK(hz, nx - 1, ny - 1, i, j, k) +
-      chy * (GETK(ex, nx, ny, i, j + 1, k) - GETK(ex, nx, ny, i, j, k)) -
-      chx * (GETK(ey, nx, ny, i + 1, j, k) - GETK(ey, nx, ny, i, j, k));
+      c_chy * (GETK(ex, nx, ny, i, j + 1, k) - GETK(ex, nx, ny, i, j, k)) -
+      c_chx * (GETK(ey, nx, ny, i + 1, j, k) - GETK(ey, nx, ny, i, j, k));
   SETK(hz, nx - 1, ny - 1, i, j, k, hz_ijk);
+}
+
+// Kernel to apply source on GPU
+__global__ void apply_source_kern(double *ez, int src_idx, double source_val) {
+  if (threadIdx.x == 0 && blockIdx.x == 0) {
+    ez[src_idx] = source_val;
+  }
 }
 
 int solve(struct SimulationParams *sim_params,
@@ -150,7 +235,7 @@ int solve(struct SimulationParams *sim_params,
     return EXIT_FAILURE;
   }
 
-  // Precompute constants
+  // Precompute constants and copy to constant memory
   double chx = sim_params->dt / (sim_params->dx * phys_params->mu);
   double chy = sim_params->dt / (sim_params->dy * phys_params->mu);
   double chz = sim_params->dt / (sim_params->dz * phys_params->mu);
@@ -158,8 +243,16 @@ int solve(struct SimulationParams *sim_params,
   double cey = sim_params->dt / (sim_params->dy * phys_params->eps);
   double cez = sim_params->dt / (sim_params->dz * phys_params->eps);
 
-  // Setup 3D grid dimensions for each field component
-  dim3 blockDim(8, 8, 8);
+  CUDA_CHECK(cudaMemcpyToSymbol(c_chx, &chx, sizeof(double)));
+  CUDA_CHECK(cudaMemcpyToSymbol(c_chy, &chy, sizeof(double)));
+  CUDA_CHECK(cudaMemcpyToSymbol(c_chz, &chz, sizeof(double)));
+  CUDA_CHECK(cudaMemcpyToSymbol(c_cex, &cex, sizeof(double)));
+  CUDA_CHECK(cudaMemcpyToSymbol(c_cey, &cey, sizeof(double)));
+  CUDA_CHECK(cudaMemcpyToSymbol(c_cez, &cez, sizeof(double)));
+
+  // Optimized block dimensions: 32x4x4 = 512 threads
+  dim3 blockDim(32, 4, 4);
+
   // Grid for E fields (full nx, ny, nz)
   dim3 gridDim_e((sim_params->nx + blockDim.x - 1) / blockDim.x,
                  (sim_params->ny + blockDim.y - 1) / blockDim.y,
@@ -180,6 +273,34 @@ int solve(struct SimulationParams *sim_params,
                   (sim_params->ny - 1 + blockDim.y - 1) / blockDim.y,
                   (sim_params->nz + blockDim.z - 1) / blockDim.z);
 
+  // Create streams for parallel execution and I/O
+  cudaStream_t streamHx, streamHy, streamHz;
+  cudaStream_t streamEx, streamEy, streamEz;
+  cudaStream_t copyStream;
+
+  CUDA_CHECK(cudaStreamCreate(&streamHx));
+  CUDA_CHECK(cudaStreamCreate(&streamHy));
+  CUDA_CHECK(cudaStreamCreate(&streamHz));
+  CUDA_CHECK(cudaStreamCreate(&streamEx));
+  CUDA_CHECK(cudaStreamCreate(&streamEy));
+  CUDA_CHECK(cudaStreamCreate(&streamEz));
+  CUDA_CHECK(cudaStreamCreate(&copyStream));
+
+  // Allocate pinned host memory for async transfers
+  double *h_ex_pinned = NULL, *h_ey_pinned = NULL, *h_ez_pinned = NULL;
+  if (sim_params->sampling_rate) {
+    CUDA_CHECK(
+        cudaMallocHost(&h_ex_pinned, ex.nx * ex.ny * ex.nz * sizeof(double)));
+    CUDA_CHECK(
+        cudaMallocHost(&h_ey_pinned, ey.nx * ey.ny * ey.nz * sizeof(double)));
+    CUDA_CHECK(
+        cudaMallocHost(&h_ez_pinned, ez.nx * ez.ny * ez.nz * sizeof(double)));
+  }
+
+  // Precompute source index
+  int src_idx = (sim_params->nz / 2) * sim_params->nx * sim_params->ny +
+                (sim_params->ny / 2) * sim_params->nx + (sim_params->nx / 2);
+
   double start = GET_TIME();
 
   for (int n = 0; n < sim_params->nt; n++) {
@@ -191,46 +312,49 @@ int solve(struct SimulationParams *sim_params,
       fflush(stdout);
     }
 
-    // Update H fields
-    upd_hx_kern<<<gridDim_hx, blockDim>>>(hx.values, ey.values, ez.values,
-                                          sim_params->nx, sim_params->ny,
-                                          sim_params->nz, chy, chz);
+    // Update H fields in parallel on separate streams
+    upd_hx_kern<<<gridDim_hx, blockDim, 0, streamHx>>>(
+        hx.values, ey.values, ez.values, sim_params->nx, sim_params->ny,
+        sim_params->nz);
 
-    upd_hy_kern<<<gridDim_hy, blockDim>>>(hy.values, ex.values, ez.values,
-                                          sim_params->nx, sim_params->ny,
-                                          sim_params->nz, chx, chz);
+    upd_hy_kern<<<gridDim_hy, blockDim, 0, streamHy>>>(
+        hy.values, ex.values, ez.values, sim_params->nx, sim_params->ny,
+        sim_params->nz);
 
-    upd_hz_kern<<<gridDim_hz, blockDim>>>(hz.values, ex.values, ey.values,
-                                          sim_params->nx, sim_params->ny,
-                                          sim_params->nz, chx, chy);
+    upd_hz_kern<<<gridDim_hz, blockDim, 0, streamHz>>>(
+        hz.values, ex.values, ey.values, sim_params->nx, sim_params->ny,
+        sim_params->nz);
 
-    // Update E fields
-    upd_ex_kern<<<gridDim_e, blockDim>>>(ex.values, hy.values, hz.values,
-                                         sim_params->nx, sim_params->ny,
-                                         sim_params->nz, cey, cez);
-    CUDA_CHECK(cudaGetLastError());
+    // Synchronize H-field streams before updating E-fields
+    CUDA_CHECK(cudaStreamSynchronize(streamHx));
+    CUDA_CHECK(cudaStreamSynchronize(streamHy));
+    CUDA_CHECK(cudaStreamSynchronize(streamHz));
 
-    upd_ey_kern<<<gridDim_e, blockDim>>>(ey.values, hx.values, hz.values,
-                                         sim_params->nx, sim_params->ny,
-                                         sim_params->nz, cex, cez);
-    CUDA_CHECK(cudaGetLastError());
+    // Update E fields in parallel on separate streams
+    upd_ex_kern<<<gridDim_e, blockDim, 0, streamEx>>>(
+        ex.values, hy.values, hz.values, sim_params->nx, sim_params->ny,
+        sim_params->nz);
 
-    upd_ez_kern<<<gridDim_e, blockDim>>>(ez.values, hx.values, hy.values,
-                                         sim_params->nx, sim_params->ny,
-                                         sim_params->nz, cex, cey);
+    upd_ey_kern<<<gridDim_e, blockDim, 0, streamEy>>>(
+        ey.values, hx.values, hz.values, sim_params->nx, sim_params->ny,
+        sim_params->nz);
 
-    // Impose source
+    upd_ez_kern<<<gridDim_e, blockDim, 0, streamEz>>>(
+        ez.values, hx.values, hy.values, sim_params->nx, sim_params->ny,
+        sim_params->nz);
+
+    // Synchronize E-field streams before applying source
+    CUDA_CHECK(cudaStreamSynchronize(streamEx));
+    CUDA_CHECK(cudaStreamSynchronize(streamEy));
+    CUDA_CHECK(cudaStreamSynchronize(streamEz));
+
+    // Impose source on GPU
     double t = n * sim_params->dt;
     switch (problem_id) {
     case 1:
     case 2: {
-      // sinusoidal excitation at 2.4 GHz in the middle of the domain
       double source_val = sin(2. * M_PI * 2.4e9 * t);
-      int src_idx = (sim_params->nz / 2) * sim_params->nx * sim_params->ny +
-                    (sim_params->ny / 2) * sim_params->nx +
-                    (sim_params->nx / 2);
-      cudaMemcpy(&ez.values[src_idx], &source_val, sizeof(double),
-                 cudaMemcpyHostToDevice);
+      apply_source_kern<<<1, 1, 0, streamEz>>>(ez.values, src_idx, source_val);
       break;
     }
     default:
@@ -238,57 +362,53 @@ int solve(struct SimulationParams *sim_params,
       break;
     }
 
-    // Output step data in VTK format
+    // Async output with separate stream
     if (sim_params->sampling_rate && !(n % sim_params->sampling_rate)) {
-      // Write Ex
-      struct data ex_host;
-      ex_host.name = ex.name;
-      ex_host.nx = ex.nx;
-      ex_host.ny = ex.ny;
-      ex_host.nz = ex.nz;
-      ex_host.dx = ex.dx;
-      ex_host.dy = ex.dy;
-      ex_host.dz = ex.dz;
-      ex_host.values = (double *)malloc(ex.nx * ex.ny * ex.nz * sizeof(double));
-      cudaMemcpy(ex_host.values, ex.values,
-                 ex.nx * ex.ny * ex.nz * sizeof(double),
-                 cudaMemcpyDeviceToHost);
+      // Wait for previous copy to finish before starting new one
+      CUDA_CHECK(cudaStreamSynchronize(copyStream));
+
+      // Ensure E-field updates are complete before copying
+      CUDA_CHECK(cudaStreamSynchronize(streamEx));
+      CUDA_CHECK(cudaStreamSynchronize(streamEy));
+      CUDA_CHECK(cudaStreamSynchronize(streamEz));
+
+      // Async copy to pinned memory
+      CUDA_CHECK(cudaMemcpyAsync(h_ex_pinned, ex.values,
+                                 ex.nx * ex.ny * ex.nz * sizeof(double),
+                                 cudaMemcpyDeviceToHost, copyStream));
+      CUDA_CHECK(cudaMemcpyAsync(h_ey_pinned, ey.values,
+                                 ey.nx * ey.ny * ey.nz * sizeof(double),
+                                 cudaMemcpyDeviceToHost, copyStream));
+      CUDA_CHECK(cudaMemcpyAsync(h_ez_pinned, ez.values,
+                                 ez.nx * ez.ny * ez.nz * sizeof(double),
+                                 cudaMemcpyDeviceToHost, copyStream));
+
+      // Synchronize copy stream before file I/O
+      CUDA_CHECK(cudaStreamSynchronize(copyStream));
+
+      // Write to files (could be further optimized with threading)
+      struct data ex_host = ex;
+      ex_host.values = h_ex_pinned;
       write_data_vtk(&ex_host, n, 0);
-      free(ex_host.values);
 
-      // Write Ey
-      struct data ey_host;
-      ey_host.name = ey.name;
-      ey_host.nx = ey.nx;
-      ey_host.ny = ey.ny;
-      ey_host.nz = ey.nz;
-      ey_host.dx = ey.dx;
-      ey_host.dy = ey.dy;
-      ey_host.dz = ey.dz;
-      ey_host.values = (double *)malloc(ey.nx * ey.ny * ey.nz * sizeof(double));
-      cudaMemcpy(ey_host.values, ey.values,
-                 ey.nx * ey.ny * ey.nz * sizeof(double),
-                 cudaMemcpyDeviceToHost);
+      struct data ey_host = ey;
+      ey_host.values = h_ey_pinned;
       write_data_vtk(&ey_host, n, 0);
-      free(ey_host.values);
 
-      // Write Ez
-      struct data ez_host;
-      ez_host.name = ez.name;
-      ez_host.nx = ez.nx;
-      ez_host.ny = ez.ny;
-      ez_host.nz = ez.nz;
-      ez_host.dx = ez.dx;
-      ez_host.dy = ez.dy;
-      ez_host.dz = ez.dz;
-      ez_host.values = (double *)malloc(ez.nx * ez.ny * ez.nz * sizeof(double));
-      cudaMemcpy(ez_host.values, ez.values,
-                 ez.nx * ez.ny * ez.nz * sizeof(double),
-                 cudaMemcpyDeviceToHost);
+      struct data ez_host = ez;
+      ez_host.values = h_ez_pinned;
       write_data_vtk(&ez_host, n, 0);
-      free(ez_host.values);
     }
   }
+
+  // Synchronize all streams before cleanup
+  CUDA_CHECK(cudaStreamSynchronize(streamHx));
+  CUDA_CHECK(cudaStreamSynchronize(streamHy));
+  CUDA_CHECK(cudaStreamSynchronize(streamHz));
+  CUDA_CHECK(cudaStreamSynchronize(streamEx));
+  CUDA_CHECK(cudaStreamSynchronize(streamEy));
+  CUDA_CHECK(cudaStreamSynchronize(streamEz));
+  CUDA_CHECK(cudaStreamSynchronize(copyStream));
 
   // Write VTK manifests
   write_manifest_vtk("ex", sim_params->dt, sim_params->nt,
@@ -304,6 +424,21 @@ int solve(struct SimulationParams *sim_params,
          1.e-6 * (double)sim_params->nx * (double)sim_params->ny *
              (double)sim_params->nz * (double)sim_params->nt / time);
 #endif
+
+  // Cleanup
+  if (sim_params->sampling_rate) {
+    cudaFreeHost(h_ex_pinned);
+    cudaFreeHost(h_ey_pinned);
+    cudaFreeHost(h_ez_pinned);
+  }
+
+  cudaStreamDestroy(streamHx);
+  cudaStreamDestroy(streamHy);
+  cudaStreamDestroy(streamHz);
+  cudaStreamDestroy(streamEx);
+  cudaStreamDestroy(streamEy);
+  cudaStreamDestroy(streamEz);
+  cudaStreamDestroy(copyStream);
 
   free_data(&ex);
   free_data(&ey);

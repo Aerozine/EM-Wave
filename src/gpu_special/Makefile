@@ -7,7 +7,7 @@ NVCC_FLAGS += -I $(INC)
 NVCC_FLAGS += -D RES_FOLDER=\"$(RES_FOLDER)\"
 # Optimization flags for NVCC and CC
 NVCC_FLAGS += -Xcompiler "-O3,-march=native,-ffast-math,-ftree-vectorize"  
-NVCC_FLAGS += --ftz=true -O3 --fmad=true -g -G #-DNDEBUG 
+NVCC_FLAGS += --ftz=true -O3 --fmad=true -DNDEBUG #-g -G #-DNDEBUG 
 
 SRC_DIR=src
 BLD_DIR=build
