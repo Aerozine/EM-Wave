@@ -51,21 +51,19 @@ void set_params(struct SimulationParams *params, int problem_id) {
 }
 
 int main(int argc, char **argv) {
-  #ifndef STABILITY_STUDY 
-  
+#ifndef STABILITY_STUDY
+
   if (argc != 2) {
     printf("Usage: %s problem_id\n", argv[0]);
     return 1;
   }
-  #else 
-  
-  
+#else
+
   if (argc != 3) {
     printf("Usage: %s problem_id dt \n", argv[0]);
     return 1;
   }
-  #endif 
-
+#endif
 
   struct SimulationParams sim_params;
   init_params(&sim_params);
@@ -77,12 +75,14 @@ int main(int argc, char **argv) {
   int problem_id = atoi(argv[1]);
   set_params(&sim_params, problem_id);
 
-  #ifdef STABILITY_STUDY
+#ifdef STABILITY_STUDY
 
-  sim_params.dt = ((float)atof(argv[2]) )/ (3.e8 * sqrt(1. / (sim_params.dx * sim_params.dx) +
-                                   1. / (sim_params.dy * sim_params.dy))); // cfl / 2
-  #endif /* ifndef STABILITY_STUDY */
-  #ifndef STABILITY_STUDY 
+  sim_params.dt =
+      ((float)atof(argv[2])) /
+      (3.e8 * sqrt(1. / (sim_params.dx * sim_params.dx) +
+                   1. / (sim_params.dy * sim_params.dy))); // cfl / 2
+#endif /* ifndef STABILITY_STUDY */
+#ifndef STABILITY_STUDY
   printf("Solving problem %d:\n", problem_id);
   printf(" - space %gm x %gm (sim_params.dx=%g, sim_params.dy=%g; "
          "sim_params.nx=%d, sim_params.ny=%d)\n",
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
          sim_params.dx, sim_params.dy, sim_params.nx, sim_params.ny);
   printf(" - time %gs (sim_params.dt=%g, sim_params.nt=%d)\n",
          sim_params.dt * sim_params.nt, sim_params.dt, sim_params.nt);
-  #endif
+#endif
   if (solve(&sim_params, &phys_params, problem_id))
     return EXIT_FAILURE;
 

@@ -8,6 +8,7 @@
 #define GET_TIME() ((double)clock() / CLOCKS_PER_SEC) // cpu time
 
 int solve(struct SimulationParams *sim_params,
-          struct PhysicalParams *phys_params, struct PerformanceData *perf_data);
+          struct PhysicalParams *phys_params,
+          struct PerformanceData *perf_data);
 
 #endif

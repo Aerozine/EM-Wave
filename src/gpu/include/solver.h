@@ -9,7 +9,6 @@
 int solve(struct SimulationParams *sim_params,
           struct PhysicalParams *phys_params, int problem_id);
 
-
 // from cuda doc to help dbg
 #define CUDA_CHECK(call)                                                       \
   do {                                                                         \
