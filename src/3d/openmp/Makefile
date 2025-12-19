@@ -1,6 +1,7 @@
 .PHONY: build clean 
 INC := include
 TARGET?=hpc_project
+
 CFLAGS += -O3 -ffast-math -march=native -funroll-loops -ftree-vectorize -fopenmp
 # CFLAGS += -O3 -fopenmp -g
 SRC_DIR=src

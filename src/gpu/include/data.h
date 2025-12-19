@@ -1,13 +1,13 @@
-  #ifndef __DATA__
+#ifndef __DATA__
 #define __DATA__
 #ifndef RES_FOLDER
 #define RES_FOLDER "data/"
 #endif
-#define PRECISION 0  // Use 0 for float, 1 for double
+#define PRECISION 0 // Use 0 for float, 1 for double
 #if PRECISION == 0
-    typedef float real;
+typedef float real;
 #else
-    typedef double real;
+typedef double real;
 #endif
 #include <stdint.h>
 #include <stdio.h>

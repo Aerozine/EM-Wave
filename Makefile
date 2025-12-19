@@ -1,4 +1,4 @@
-.PHONY = reference stability cache mpi openmp gpu clean_all clean run
+.PHONY = reference stability cache mpi openmp gpu gpu_special clean_all clean run hpc_project
 TARGET = hpc_project
 RES_FOLDER?="data/"
 BUILD ?=reference 
@@ -6,7 +6,7 @@ DIM3?=0
 SUB_FOLDER?=src
 RES_IDX=ez.pvd hx.pvd hy.pvd ex.pvd ey.pvd hz.pvd
 # checking if build has the right values
-ifeq ($(filter $(BUILD),reference stability cache mpi openmp gpu),)
+ifeq ($(filter $(BUILD),reference stability cache mpi openmp gpu gpu_special),)
     $(error Invalid build argument BUILD="$(BUILD)". possible values are stability cache mpi openmp gpu )
 endif
 
@@ -47,10 +47,9 @@ clean_all:
 # hardcoded profiling
 gpu_memcheck:
 	/usr/local/cuda/bin/compute-sanitizer --tool initcheck --leak-check full --print-limit 2  ./hpc_project 1
-#
-#	/usr/local/cuda/bin/compute-sanitizer --tool memcheck --leak-check full --print-limit 2  ./hpc_project 1
-#/usr/local/cuda/bin/compute-sanitizer --tool racecheck --leak-check full --print-limit 2  ./hpc_project 1
-#/usr/local/cuda/bin/compute-sanitizer --tool synccheck --leak-check full --print-limit 2  ./hpc_project 1
+	/usr/local/cuda/bin/compute-sanitizer --tool memcheck --leak-check full --print-limit 2  ./hpc_project 1
+	/usr/local/cuda/bin/compute-sanitizer --tool racecheck --leak-check full --print-limit 2  ./hpc_project 1
+	/usr/local/cuda/bin/compute-sanitizer --tool synccheck --leak-check full --print-limit 2  ./hpc_project 1
 gpu_profile:
 	ncu -f --set full --target-processes all --call-stack  --nvtx -o profile ./hpc_project 2
 gpu_nsys:

@@ -3,6 +3,7 @@ INC := include
 TARGET?=hpc_project
 CFLAGS += -O3 -ffast-math -march=native -funroll-loops -ftree-vectorize
 SRC_DIR=src
+CC:=mpicc
 BLD_DIR=build
 build : $(TARGET)
 SRC     := $(wildcard $(SRC_DIR)/*.c)
