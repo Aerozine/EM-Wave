@@ -37,6 +37,8 @@ The possible targets are:
 
 All of those options are available for both the 2D and 3D cases. For the 2D case, there is an additional target, `stability`, corresponding to the stability analysis. To build it, a Python environment with numpy and matplotlib is required.
 
+- There is a special target `gpu_special` that implements varying spatial permittivity for 2D simulations.
+  
 Running the simulation depends on the build. For:
 
 -   `reference`, run `./hpc_project <id>`, where `<id>` is the problem id,
