@@ -12,13 +12,13 @@
 #define BLOCK_Y 16
 __constant__ real c_chx, c_chy, c_cex, c_cey;
 
-__global__ void apply_source_kern(real *__restrict__ ez, size_t pitch,
+__global__ void  __launch_bounds__(BLOCK_X * BLOCK_Y) apply_source_kern(real *__restrict__ ez, size_t pitch,
                                   int src_i, int src_j, real value) {
   if (threadIdx.x != 0 || blockIdx.x != 0)
     return;
   ez[PIDX(src_i, src_j, pitch)] = value;
 }
-__global__ void upd_h_kern(real *__restrict__ hx, size_t hx_pitch,
+__global__ void  __launch_bounds__(BLOCK_X * BLOCK_Y) upd_h_kern(real *__restrict__ hx, size_t hx_pitch,
                            real *__restrict__ hy, size_t hy_pitch,
                            const real *__restrict__ ez, size_t ez_pitch, int nx,
                            int ny) {
@@ -44,24 +44,25 @@ __global__ void upd_h_kern(real *__restrict__ hx, size_t hx_pitch,
   }
   __syncthreads();
   // reduce shared memory reads
-  real ez_curr = s_ez[threadIdx.y][threadIdx.x];
+  // increase reg per threads
+  //real ez_curr = s_ez[threadIdx.y][threadIdx.x];
 
   // update hx
   // hx[i,j] -= chy * (ez[i,j+1] - ez[i,j])
   if (i < nx && j < ny - 1) {
-    real ez_next_j = s_ez[threadIdx.y + 1][threadIdx.x];
-    hx[PIDX(i, j, hx_pitch)] -= c_chy * (ez_next_j - ez_curr);
+    //real ez_next_j = s_ez[threadIdx.y + 1][threadIdx.x];
+    hx[PIDX(i, j, hx_pitch)] -= c_chy * (s_ez[threadIdx.y + 1][threadIdx.x] - s_ez[threadIdx.y][threadIdx.x]);
   }
 
   // update hy
   // hy[i,j] += chx * (ez[i+1,j] - ez[i,j])
   if (i < nx - 1 && j < ny) {
-    real ez_next_i = s_ez[threadIdx.y][threadIdx.x + 1];
-    hy[PIDX(i, j, hy_pitch)] += c_chx * (ez_next_i - ez_curr);
+    //real ez_next_i = s_ez[threadIdx.y][threadIdx.x + 1];
+    hy[PIDX(i, j, hy_pitch)] += c_chx * (s_ez[threadIdx.y][threadIdx.x + 1] - s_ez[threadIdx.y][threadIdx.x]);
   }
 }
 
-__global__ void upd_ez_kern(real *__restrict__ ez, size_t ez_pitch,
+__global__ void  __launch_bounds__(BLOCK_X * BLOCK_Y) upd_ez_kern(real *__restrict__ ez, size_t ez_pitch,
                             const real *__restrict__ hx, size_t hx_pitch,
                             const real *__restrict__ hy, size_t hy_pitch,
                             int nx, int ny) {

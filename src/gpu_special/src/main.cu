@@ -359,7 +359,7 @@ void set_params(struct SimulationParams *params, int problem_id) {
     params->nx = params->ny = 500;
     params->dt = 0.5 / (3.e8 * sqrt(1. / (params->dx * params->dx) +
                                     1. / (params->dy * params->dy)));
-    params->nt = 2000;
+    params->nt = 6000;
     params->sampling_rate = 5;
     break;
   default:

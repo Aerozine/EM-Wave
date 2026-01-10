@@ -54,3 +54,45 @@ gpu_profile:
 	ncu -f --set full --target-processes all --call-stack  --nvtx -o profile ./hpc_project 2
 gpu_nsys:
 	nsys profile -t cuda,nvtx,osrt -o sys_profile ./hpc_project 2
+
+gpu_profile_v2:
+	ncu -f --set full --target-processes all \
+	    --call-stack \
+	    --nvtx \
+	    --print-summary per-kernel \
+	    --clock-control none \
+	    --import-source yes \
+	    -o profile_detailed \
+	    ./hpc_project 2
+
+gpu_nsys_v2:
+	nsys profile -t cuda,nvtx,osrt,cublas,cudnn \
+	    --cudabacktrace=true \
+	    --cuda-memory-usage=true \
+	    --osrt-threshold=10000 \
+	    --stats=true \
+	    --force-overwrite true \
+	    -o sys_profile_detailed \
+	    ./hpc_project 2
+
+		gpu_profile_native:
+	ncu -f --set full --target-processes all \
+	    --call-stack \
+	    --print-summary per-kernel \
+	    --clock-control base \
+	    --import-source yes \
+	    --kernel-name-base mangled \
+	    -o profile_comprehensive \
+	    ./hpc_project 2
+
+gpu_nsys_native:
+	nsys profile -t cuda,osrt,cublas,cudnn \
+	    --cudabacktrace=all \
+	    --cuda-memory-usage=true \
+	    --gpu-metrics-device=all \
+	    --osrt-threshold=10000 \
+	    --stats=true \
+	    --force-overwrite true \
+	    --sampling-period=800000 \
+	    -o sys_profile_comprehensive \
+	    ./hpc_project 2
