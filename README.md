@@ -45,36 +45,7 @@ Running the simulation depends on the build. For:
 -   `mpi`, run `mpirun -n <procs> hpc_project <id> [size]`, where `<procs>` is the number of processes to run.
 
 Those commands should of course be adapted to the cluster.
-<<<<<<< HEAD
-=======
-# Propagation of EM waves
 
-![](doc/emag_waves.png)
+## Detailed view
 
-This is a project realised for the _High Performance Scientific Computing_ class
-at the University of Liège.
-
-The goal is to simulate, using a finite difference scheme, the propagation of
-electromagnetic waves.
-The parallelization of the code and the its execution on a cluster will be studied.
-At some point, a simulation will be run on a GPU.
-
-## Building and running
-
-The code can be compiled with the following commands :
-
-```bash
-BUILD="<target>" make -j$(nprocs)
-```
-
-where BUILD is one of folder target. Actually there is `reference`, `stability`, `openmp`, and `mpi`.
-To build stability, an environment python with numpy and matplotlib is required.
-
-It can be run with :
-
-```bash
-make run
-```
->>>>>>> lodev
-=======
->>>>>>> 179e11eaa2e4773a78ba8f7ab7e0583cbe70522c
+The answer to the question, along with the related graph and discussion, can be found in the wiki section of this page. Please refer to the wiki for complete explanations, visual data, and additional context
