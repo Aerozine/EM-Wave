@@ -61,7 +61,7 @@ dkms.conf
 
 # stuff from makefile
 data/
-build/
+*.o
 *.pvd
 hpc_project
 compile_flags.txt
