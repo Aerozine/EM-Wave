@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Propagation of EM waves
 
 ![](doc/emag_waves.png)
@@ -37,13 +36,16 @@ The possible targets are:
 
 All of those options are available for both the 2D and 3D cases. For the 2D case, there is an additional target, `stability`, corresponding to the stability analysis. To build it, a Python environment with numpy and matplotlib is required.
 
+There is a special target `gpu_special` that implements varying spatial permittivity for 2D simulations.
+
 Running the simulation depends on the build. For:
 
--   `reference`, run `./hpc_project <id>`, where `<id>` is the problem id,
+-   `reference`and `gpu` , run `./hpc_project <id>`, where `<id>` is the problem id,
 -   `openmp`, run `./hpc_project <id> [size] [threads]`, where `[size]` is the size of the sides of the spatial grid (which is a square), and `[threads]` is the number of threads to use,
 -   `mpi`, run `mpirun -n <procs> hpc_project <id> [size]`, where `<procs>` is the number of processes to run.
 
 Those commands should of course be adapted to the cluster.
+<<<<<<< HEAD
 =======
 # Propagation of EM waves
 
@@ -74,3 +76,5 @@ It can be run with :
 make run
 ```
 >>>>>>> lodev
+=======
+>>>>>>> 179e11eaa2e4773a78ba8f7ab7e0583cbe70522c
