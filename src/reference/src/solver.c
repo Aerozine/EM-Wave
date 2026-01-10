@@ -69,7 +69,6 @@ int solve(struct SimulationParams *sim_params,
 
 #ifdef STABILITY_STUDY
     // +42 is to decentrate from the source
-    // maybe using FLT_DIG ?
     printf("%.12f \n",
            GET(&ez, (sim_params->nx >> 1) + 42, (sim_params->ny >> 1) + 42));
 #endif
@@ -86,15 +85,16 @@ int solve(struct SimulationParams *sim_params,
       printf("Error: unknown source\n");
       break;
     }
-
+#ifndef STABILITY_STUDY
     // output step data in VTK format
     if (sim_params->sampling_rate && !(n % sim_params->sampling_rate)) {
       write_data_vtk(&ez, n, 0);
       // write_data_vtk(&hx, n, 0);
       // write_data_vtk(&hy, n, 0);
     }
+    #endif
   }
-
+#ifndef STABILITY_STUDY
   // write VTK manifest, linking to individual step data files
   write_manifest_vtk("ez", sim_params->dt, sim_params->nt,
                      sim_params->sampling_rate, 1);
@@ -102,7 +102,7 @@ int solve(struct SimulationParams *sim_params,
   // write_manifest_vtk("hy", sim_params->dt, sim_params->nt, sampling_rate, 1);
 
   double time = GET_TIME() - start;
-#ifndef STABILITY_STUDY
+
 
   printf("\nDone: %g seconds (%g MUpdates/s)\n", time,
          1.e-6 * (double)sim_params->nx * (double)sim_params->ny *
