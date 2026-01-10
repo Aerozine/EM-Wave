@@ -75,7 +75,7 @@ gpu_nsys_v2:
 	    -o sys_profile_detailed \
 	    ./hpc_project 2
 
-		gpu_profile_native:
+gpu_profile_native:
 	ncu -f --set full --target-processes all \
 	    --call-stack \
 	    --print-summary per-kernel \
