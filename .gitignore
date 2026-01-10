@@ -10,7 +10,7 @@
 # cudaaaaa
 *.ncu-rep
 *.nsys-rep
-
+*.qdstrm
 
 
 # Linker output
