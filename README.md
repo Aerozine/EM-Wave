@@ -48,4 +48,4 @@ Those commands should of course be adapted to the cluster.
 
 ## Detailed view
 
-The answer to the question, along with the related graph and discussion, can be found in the wiki section of this page. Please refer to the wiki for complete explanations, visual data, and additional context
+The answer to the question, along with the related graph and discussion, can be found in the [Project Wiki](../../wikis/home) section of this page. Please refer to the wiki for complete explanations, visual data, and additional context
